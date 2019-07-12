@@ -100,7 +100,7 @@ function loadPano() {
 
     panoCurrent = panos[counter];
     var imgPano = panoCurrent.image;
-    var imgOverlay = panoCurrent.overlay;
+    
 
     
     latStart = panoCurrent.latStart;
@@ -285,6 +285,27 @@ function onFullscreenChange(e) {
     window.screen.orientation.lock('landscape');
 }
 
+function nextPano() {
+  panosList.then(function (panos) {
+    counter ++;
+    if (counter == panos.length) {
+      counter = 0;
+    }
+    loadPano();
+  })
+}
+
+function previousPano() {
+  panosList.then(function (panos) {
+    counter --;
+    if (counter < 0) {
+      counter = panos.length - 1;
+    }
+    loadPano();
+  })
+}
+
+
 function onkey(e) {
   panosList.then(function (panos) {
     if (e.keyCode == '37') { // left arrow - prev panorama
@@ -344,7 +365,7 @@ function animate() {
 
 function update() {
   if ( isUserInteracting === false ) {
-    lon += 0.005;
+    lon += -0.01;
   }
   lat = Math.max( - 85, Math.min( 85, lat ) );
   phi = THREE.Math.degToRad( 90 - lat );
@@ -370,5 +391,16 @@ document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('mozfullscreenchange', onFullscreenChange);
 window.addEventListener('keydown', onkey, true);
 window.addEventListener('resize', onWindowResize, false );
+
+
+window.onload=function(){
+  document.querySelector('button.prev').addEventListener('click', function() { 
+    previousPano()
+  });
+  document.querySelector('button.next').addEventListener('click', function() { 
+    nextPano()
+  });
+};
+
 
 init();

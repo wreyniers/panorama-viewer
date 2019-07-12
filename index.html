@@ -11,13 +11,81 @@
         margin: 0px;
         padding: 0px;
         overflow: hidden;
-      }    
+        position:relative;
+      }  
+
+
+      canvas, .edge {cursor: move;}
+      button, input[type="submit"], input[type="reset"] {
+        background: none;
+        color: inherit;
+        border: none;
+        padding: 0;
+        font: inherit;
+        cursor: pointer;
+        outline: inherit;
+      }
+
+      .edge {
+        position:absolute;
+        width:10%;
+        height:100%;
+        top:0;      
+      }
+
+      .edge.left {
+        left:0;
+      }
+
+      .edge.right {
+        right:0;
+      }
+
+      .edge:hover button {
+        opacity:.5;   
+      }
+
+      button.changePano {
+        width:100px;
+        height:100px;
+        background:black;
+        color:white;
+        position:absolute;
+        top:50%;
+        margin-top:-50px;
+        font-size:80px;
+        text-align:center;
+        line-height:100px;
+        opacity:0;
+        transition: opacity .5s ease-out;
+        -moz-transition: opacity .5s ease-out;
+        -webkit-transition: opacity .5s ease-out;
+        -o-transition: opacity .5s ease-out;
+      }
+      button.changePano:hover {
+        opacity:.75;
+      }  
+      button.prev {
+        left:20px;
+      }
+      button.next {
+        right:20px;
+      }
     </style>
   </head>
   <body>
     <script src="js/lib/fetch.js"></script>
     <script src="https://threejs.org/build/three.js"></script>
+    <script src="https://kit.fontawesome.com/c98c42096d.js"></script>
     <script src="js/tween.min.js"></script>
     <script src="js/main.js"></script>
+    
+
+    <div class="edge left">
+      <button class="changePano prev" ><i class="fas fa-chevron-left"></i></button>
+    </div>
+    <div class="edge right">
+      <button class="changePano next"><i class="fas fa-chevron-right"></i></button>
+    </div>
   </body>
 </html>

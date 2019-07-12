@@ -1,29 +1,21 @@
 [
   {
-    "title": "En route pour le Puy de Sancy",
-    "details": "Equirectangular panorama built from 10 pictures, shot handheld.",
-    "owner": "Alexandre Duret-Lutz",
-    "overlay": "images/puydesancy-overlay.png",
+    "title": "Elven Mile Dam",
+    "details": "Shot via Mavic 2 Pro",
+    "owner": "Wouter Reyniers",
     "image": "panos/eleven-mile-dam.jpg",
-    "audio": "audio/235428__allanz10d__calm-ocean-breeze-simulation.ogg",
-    "source": "http://bit.ly/1xk9Vk1",
-    "license": "Creative Commons",
-    "lonStart": 228, 
-    "latStart": -10,
+    "lonStart": 250, 
+    "latStart": -12,
     "fovStart": 42
   },
   {
-    "title": "Musée du Louvre",
-    "details": "Equirectangular panorama built from 8 pictures.",
-    "owner": "Alexandre Duret-Lutz",
-    "overlay": "images/louvre-overlay.png",
-    "image": "images/louvre.jpg",
-    "audio": "audio/235428__allanz10d__calm-ocean-breeze-simulation.ogg",
-    "source": "https://www.flickr.com/photos/gadl/406108908",
-    "license": "Creative Commons",
-    "lonStart": 273.35, 
-    "latStart": 12.6,
-    "fovStart": 62.5
+    "title": "Vedauwoo - Curt Gowdy State Park",
+    "details": "Shot via Mavic 2 Pro",
+    "owner": "Wouter Reyniers",
+    "image": "panos/vedauwoo.jpg",
+    "lonStart": -8, 
+    "latStart": -18,
+    "fovStart": 38
   },
   {
     "title": "Sunrise on Tintamarre",
