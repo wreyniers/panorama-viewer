@@ -46,7 +46,10 @@ var pano;
 var panoCurrent;
 var renderer;
 var scene;
-var vrMode = false;
+var lonStart;
+var latStart;
+var fovStart;
+
 
 function bend( group, amount, multiMaterialObject ) {
   function bendVertices( mesh, amount, parent ) {

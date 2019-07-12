@@ -4,10 +4,13 @@
     "details": "Equirectangular panorama built from 10 pictures, shot handheld.",
     "owner": "Alexandre Duret-Lutz",
     "overlay": "images/puydesancy-overlay.png",
-    "image": "images/puydesancy.jpg",
+    "image": "panos/eleven-mile-dam.jpg",
     "audio": "audio/235428__allanz10d__calm-ocean-breeze-simulation.ogg",
     "source": "http://bit.ly/1xk9Vk1",
-    "license": "Creative Commons"
+    "license": "Creative Commons",
+    "lonStart": 228, 
+    "latStart": -10,
+    "fovStart": 42
   },
   {
     "title": "Musée du Louvre",
@@ -17,7 +20,10 @@
     "image": "images/louvre.jpg",
     "audio": "audio/235428__allanz10d__calm-ocean-breeze-simulation.ogg",
     "source": "https://www.flickr.com/photos/gadl/406108908",
-    "license": "Creative Commons"
+    "license": "Creative Commons",
+    "lonStart": 273.35, 
+    "latStart": 12.6,
+    "fovStart": 62.5
   },
   {
     "title": "Sunrise on Tintamarre",
@@ -27,6 +33,9 @@
     "image": "images/tintamarre.jpg",
     "audio": "audio/235428__allanz10d__calm-ocean-breeze-simulation.ogg",
     "source": "g",
-    "license": "Creative Commons"
+    "license": "Creative Commons",
+    "lonStart": 279, 
+    "latStart": -14,
+    "fovStart": 76.25
   }
 ]
