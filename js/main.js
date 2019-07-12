@@ -33,7 +33,11 @@ var isMobile = function () {
 
 var camera;
 var clock = new THREE.Clock();
-var vrControls;
+var isUserInteracting = false,
+        onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+        lon = 0, onMouseDownLon = 0,
+        lat = 0, onMouseDownLat = 0,
+        phi = 0, theta = 0;
 var counter = 0;
 var effect;
 var manager;
@@ -95,26 +99,49 @@ function loadPano() {
     var imgPano = panoCurrent.image;
     var imgOverlay = panoCurrent.overlay;
 
+    
+    latStart = panoCurrent.latStart;
+    lonStart = panoCurrent.lonStart;
+    fovStart = panoCurrent.fovStart;
+
     // fade out current panorama.
     new TWEEN.Tween(pano.material)
       .to({opacity: 0}, 300)
       .onComplete(function () {
         // load in new panorama texture.
-        pano.material.map = THREE.ImageUtils.loadTexture(imgPano, THREE.UVMapping, fadeIn);
+        
+        //pano.material.map = THREE.ImageUtils.loadTexture(imgPano, THREE.UVMapping, fadeIn);
+        var texture = new THREE.TextureLoader().load(imgPano);
+        var material = new THREE.MeshBasicMaterial( { map: texture } );
+        pano.material = material;
+        pano.material.map.minFilter = THREE.LinearFilter;
+        positionCamera();
       })
       .start();
 
-    // fade out current title.
-    new TWEEN.Tween(overlay.children[0].material)
-      .to({opacity: 0}, 300)
-      .onComplete(function () {
-        // load in new title.
-        overlay.children[0].material.map = THREE.ImageUtils.loadTexture(imgOverlay, THREE.UVMapping);
-      })
-      .start();
+    function positionCamera() {
+      lat = latStart;
+      lon = lonStart;
+      camera.fov = fovStart;
+      camera.updateProjectionMatrix();
+    }
+    // // fade out current title.
+    // new TWEEN.Tween(overlay.children[0].material)
+    //   .to({opacity: 0}, 300)
+    //   .onComplete(function () {
+    //     // load in new title.
+    //     var texture = new THREE.TextureLoader().load(imgOverlay);
+    //     var material = new THREE.MeshBasicMaterial( { map: texture } );
+    //     overlay.children[0].material = material;
+    //     overlay.children[0].material.map.minFilter = THREE.LinearFilter;
+        
+    //     //lat = latStart;
+    //     lat = latStart;
+    //     lon = lonStart;
+    //   }).start();
 
     // fade in newly loaded panorama.
-    function fadeIn() {
+    function fadeIn() {  
       new TWEEN.Tween(pano.material)
         .to({opacity: 1}, 1000)
         .onComplete(fadeInOverlay)
@@ -134,62 +161,83 @@ function loadPano() {
 
 // initialize scene
 function init() {
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.autoClear = false;
-  renderer.setClearColor( 0x000000 );
+  renderer = new THREE.WebGLRenderer({ antialias: true, maxAnisotropy: "16", precision: "highp" });
+  console.log("maxAnisotropy: " + renderer.capabilities.getMaxAnisotropy())
+  console.log("maxPrecision: " + renderer.capabilities.getMaxPrecision());
+  renderer.setPixelRatio( window.devicePixelRatio );
+  renderer.setSize( window.innerWidth, window.innerHeight );
+  //renderer.autoClear = false;
+  //renderer.setClearColor( 0x000000 );
   document.body.appendChild( renderer.domElement );
 
   scene = new THREE.Scene();
-
-  camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-  camera.position.z = 0.01; // set camera position so that OrbitControls works properly
+  camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1100 );
+  camera.target = new THREE.Vector3( 0,0 , 0 );
   scene.add(camera);
 
-  // effect and controls for VR
-  effect = new THREE.VREffect(renderer);
-  vrControls = new THREE.VRControls(camera);
+  // Event Listeners
+  document.addEventListener( 'mousedown', onPointerStart, false );
+  document.addEventListener( 'mousemove', onPointerMove, false );
+  document.addEventListener( 'mouseup', onPointerUp, false );
+  document.addEventListener( 'wheel', onDocumentMouseWheel, false );
+  document.addEventListener( 'touchstart', onPointerStart, false );
+  document.addEventListener( 'touchmove', onPointerMove, false );
+  document.addEventListener( 'touchend', onPointerUp, false );
+  document.addEventListener( 'dragover', function ( event ) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }, false );
+  document.addEventListener( 'dragenter', function () {
+    document.body.style.opacity = 0.5;
+  }, false );
+  document.addEventListener( 'dragleave', function () {
+    document.body.style.opacity = 1;
+  }, false );
+  document.addEventListener( 'drop', function ( event ) {
+    event.preventDefault();
+    var reader = new FileReader();
+    reader.addEventListener( 'load', function ( event ) {
+      material.map.image.src = event.target.result;
+      material.map.needsUpdate = true;
+    }, false );
+    reader.readAsDataURL( event.dataTransfer.files[ 0 ] );
+    document.body.style.opacity = 1;
+  }, false );
 
   // Fetch the JSON list of panos
   function loadMaterial() {
-    return new Promise(function (resolve) {
-      var material = new THREE.MeshBasicMaterial({
-        side: THREE.DoubleSide,
-        transparent: true,
-        map: THREE.ImageUtils.loadTexture(
-          'images/background.jpg', // load placeholder rexture
-          THREE.UVMapping,
-          resolve
-        )
-      });
-
-      pano = new THREE.Mesh( geometry, material );
-      pano.renderDepth = 2;
-      pano.rotation.set( 0, -90 * Math.PI / 180, 0 );
-      scene.add(pano);
-    });
+    var texture = new THREE.TextureLoader().load('images/background.jpg'),resolve;
+    var material = new THREE.MeshBasicMaterial( { map: texture } );
+    //material.map.minFilter = THREE.LinearFilter;
+    pano = new THREE.Mesh( geometry, material );
+    pano.renderOrder = 20;
+    
+    
+    pano.rotation.set( 0, -100 * Math.PI / 180, 0 );
+    scene.add(pano);
   }
   panosList.then(loadMaterial).then(loadPano);
 
   // panorma mesh
-  var geometry = new THREE.SphereGeometry( 1000, 60, 60 );
-  geometry.applyMatrix( new THREE.Matrix4().makeScale( -1, 1, 1 ) );
+  var geometry = new THREE.SphereBufferGeometry( 500, 60, 40 );
+  geometry.scale( - 1, 1, 1 );
 
-  // title text
-  overlay = new THREE.Object3D();
-  var mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry( 63, 30, 20, 20 ),
-    new THREE.MeshBasicMaterial({
-      transparent: true,
-      alphaTest: 0.5,
-      side: THREE.FrontSide,
-      map: new THREE.TextureLoader().load('images/background-overlay.png')
-  }));
-  overlay.add( mesh );
-  overlay.position.set( 0, -3, -5 );
-  overlay.scale.set( 0.1, 0.1, 0.1 );
-  bend(overlay, 100);
-  mesh.renderOrder = 1;
-  scene.add( overlay );
+  // // title text
+  // overlay = new THREE.Object3D();
+  // var mesh = new THREE.Mesh(
+  //   new THREE.PlaneGeometry( 63, 30, 20, 20 ),
+  //   new THREE.MeshBasicMaterial({
+  //     transparent: true,
+  //     alphaTest: 0.5,
+  //     side: THREE.FrontSide,
+  //     map: new THREE.TextureLoader().load('images/background-overlay.png')
+  // }));
+  // overlay.add( mesh );
+  // overlay.position.set( 0, -3, -5 );
+  // overlay.scale.set( 0.1, 0.1, 0.1 );
+  // bend(overlay, 100);
+  // mesh.renderOrder = 20;
+  // scene.add( overlay );
 
   // trigger function that begins to animate the scene.
   new TWEEN.Tween()
@@ -221,11 +269,7 @@ function requestFullscreen() {
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  if (vrMode) {
-    effect.setSize(window.innerWidth, window.innerHeight);
-  } else {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  }
+  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function onFullscreenChange(e) {
@@ -233,19 +277,14 @@ function onFullscreenChange(e) {
     document.mozFullScreenElement ||
     document.webkitFullscreenElement;
 
-  if (!fsElement) {
-    vrMode = false;
-  } else {
+
     // lock screen if mobile
     window.screen.orientation.lock('landscape');
-  }
 }
 
 function onkey(e) {
   panosList.then(function (panos) {
-    if (e.keyCode == '90') {
-      vrControls.zeroSensor();
-    } else if (e.keyCode == '37') { // left arrow - prev panorama
+    if (e.keyCode == '37') { // left arrow - prev panorama
       counter --;
       if (counter < 0) {
         counter = panos.length - 1;
@@ -262,25 +301,68 @@ function onkey(e) {
   e.stopPropagation();
 }
 
-function animate() {
-  TWEEN.update();
+function onPointerStart( event ) {
+        isUserInteracting = true;
+        var clientX = event.clientX || event.touches[ 0 ].clientX;
+        var clientY = event.clientY || event.touches[ 0 ].clientY;
+        onMouseDownMouseX = clientX;
+        onMouseDownMouseY = clientY;
+        onMouseDownLon = lon;
+        onMouseDownLat = lat;
+      }
 
-  if (vrMode) {
-    effect.render(scene, camera);
-  }  else {
-    renderer.render(scene, camera);
+function onPointerMove( event ) {
+  if ( isUserInteracting === true ) {
+    var clientX = event.clientX || event.touches[ 0 ].clientX;
+    var clientY = event.clientY || event.touches[ 0 ].clientY;
+    lon = ( onMouseDownMouseX - clientX ) * 0.025 + onMouseDownLon;
+    lat = ( clientY - onMouseDownMouseY ) * 0.025 + onMouseDownLat;
+    console.log ("lon: "+ lon + " lat: " + lat)
   }
-
-  vrControls.update();
-
-  requestAnimationFrame(animate);
 }
 
-document.querySelector('#enterVr').addEventListener('click', function() {
-  vrMode = vrMode ? false : true;
-  requestFullscreen();
-  onWindowResize();
-});
+function onPointerUp() {
+  isUserInteracting = false;
+}
+
+function onDocumentMouseWheel( event ) {
+  var fov = camera.fov + event.deltaY * 0.01;
+  camera.fov = THREE.Math.clamp( fov, 20, 75 );
+  console.log("fov: " + fov)
+  camera.updateProjectionMatrix();
+}
+
+function animate() {
+  TWEEN.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+  update();
+}
+
+function update() {
+  if ( isUserInteracting === false ) {
+    lon += 0.005;
+  }
+  lat = Math.max( - 85, Math.min( 85, lat ) );
+  phi = THREE.Math.degToRad( 90 - lat );
+  theta = THREE.Math.degToRad( lon );
+  
+  //console.log (lat, phi, theta)
+  camera.target.x = 500 * Math.sin( phi ) * Math.cos( theta );
+  camera.target.y = 500 * Math.cos( phi );
+  camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
+  
+  
+  camera.lookAt( camera.target );
+
+  /*
+  // distortion
+  camera.position.copy( camera.target ).negate();
+  */
+
+  renderer.render( scene, camera );
+}
+
 document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('mozfullscreenchange', onFullscreenChange);
 window.addEventListener('keydown', onkey, true);
