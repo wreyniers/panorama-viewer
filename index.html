@@ -71,9 +71,19 @@
       button.next {
         right:20px;
       }
+
+      #glcanvas{ 
+        display:none;
+        opacity:.5;
+        position:absolute;
+      }
+
     </style>
   </head>
   <body>
+    <canvas id="glcanvas" width="1600" height="160">
+      Your browser does not support the canvas element.
+    </canvas>
     <script src="js/lib/fetch.js"></script>
     <script src="https://threejs.org/build/three.js"></script>
     <script src="https://kit.fontawesome.com/c98c42096d.js"></script>

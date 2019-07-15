@@ -100,6 +100,7 @@ function loadPano() {
 
     panoCurrent = panos[counter];
     var imgPano = panoCurrent.image;
+    var imgOverlay = panoCurrent.overlay;
     
 
     
@@ -111,9 +112,8 @@ function loadPano() {
     new TWEEN.Tween(pano.material)
       .to({opacity: 0}, 300)
       .onComplete(function () {
-        // load in new panorama texture.
-        
-        //pano.material.map = THREE.ImageUtils.loadTexture(imgPano, THREE.UVMapping, fadeIn);
+        // load in new panorama texture.        
+        pano.material.map = THREE.ImageUtils.loadTexture(imgPano, THREE.UVMapping, fadeIn);
         var texture = new THREE.TextureLoader().load(imgPano);
         var material = new THREE.MeshBasicMaterial( { map: texture } );
         pano.material = material;
@@ -122,26 +122,20 @@ function loadPano() {
       })
       .start();
 
-    function positionCamera() {
-      lat = latStart;
-      lon = lonStart;
-      camera.fov = fovStart;
-      camera.updateProjectionMatrix();
-    }
-    // // fade out current title.
-    // new TWEEN.Tween(overlay.children[0].material)
-    //   .to({opacity: 0}, 300)
-    //   .onComplete(function () {
-    //     // load in new title.
-    //     var texture = new THREE.TextureLoader().load(imgOverlay);
-    //     var material = new THREE.MeshBasicMaterial( { map: texture } );
-    //     overlay.children[0].material = material;
-    //     overlay.children[0].material.map.minFilter = THREE.LinearFilter;
+    // fade out current title.
+    new TWEEN.Tween(overlayTxt.children[0].material)
+      .to({opacity: 1}, 300)
+      .onComplete(function () {
+        // load in new title.
+        //var texture = new THREE.TextureLoader().load(imgOverlay);
+        //var material = new THREE.MeshBasicMaterial( { map: texture } );
+        //overlay.children[0].material = material;
+        //overlay.children[0].material.map.minFilter = THREE.LinearFilter;
         
-    //     //lat = latStart;
-    //     lat = latStart;
-    //     lon = lonStart;
-    //   }).start();
+        //lat = latStart;
+        lat = latStart;
+        lon = lonStart;
+      }).start();
 
     // fade in newly loaded panorama.
     function fadeIn() {  
@@ -153,13 +147,23 @@ function loadPano() {
 
     // fade in newly loaded title.
     function fadeInOverlay() {
-      new TWEEN.Tween(overlay.children[0].material)
+      console.log (overlay)
+      new TWEEN.Tween(overlayTxt.children[0].material)
         .to({opacity: 1}, 300)
         .start();
     }
 
   });
+
+  function positionCamera() {
+    lat = latStart;
+    lon = lonStart;
+    camera.fov = fovStart;
+    camera.updateProjectionMatrix();
+  }
 }
+
+
 
 
 // initialize scene
@@ -169,8 +173,6 @@ function init() {
   console.log("maxPrecision: " + renderer.capabilities.getMaxPrecision());
   renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize( window.innerWidth, window.innerHeight );
-  //renderer.autoClear = false;
-  //renderer.setClearColor( 0x000000 );
   document.body.appendChild( renderer.domElement );
 
   scene = new THREE.Scene();
@@ -186,6 +188,9 @@ function init() {
   document.addEventListener( 'touchstart', onPointerStart, false );
   document.addEventListener( 'touchmove', onPointerMove, false );
   document.addEventListener( 'touchend', onPointerUp, false );
+  
+
+  // Drop in images
   document.addEventListener( 'dragover', function ( event ) {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
@@ -225,22 +230,38 @@ function init() {
   var geometry = new THREE.SphereBufferGeometry( 500, 60, 40 );
   geometry.scale( - 1, 1, 1 );
 
-  // // title text
-  // overlay = new THREE.Object3D();
-  // var mesh = new THREE.Mesh(
-  //   new THREE.PlaneGeometry( 63, 30, 20, 20 ),
-  //   new THREE.MeshBasicMaterial({
-  //     transparent: true,
-  //     alphaTest: 0.5,
-  //     side: THREE.FrontSide,
-  //     map: new THREE.TextureLoader().load('images/background-overlay.png')
-  // }));
-  // overlay.add( mesh );
-  // overlay.position.set( 0, -3, -5 );
-  // overlay.scale.set( 0.1, 0.1, 0.1 );
-  // bend(overlay, 100);
-  // mesh.renderOrder = 20;
-  // scene.add( overlay );
+
+  function textOverlay() {
+    
+    var glcanvas = document.getElementById("glcanvas");
+    var ctx = glcanvas.getContext("2d");
+    ctx.font = "160px cooper";
+    ctx.fillStyle = "white";
+    ctx.fillText("Eleven Mile Dam", 110, 120);
+
+    overlayTxt = new THREE.Object3D();
+    texture = new THREE.Texture(glcanvas);
+    var material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+    material.map.minFilter = THREE.LinearFilter;
+    var mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry( 400, 40, 20, 20 ),
+      material
+    );
+   
+    overlayTxt.add( mesh)
+    overlayTxt.position.set( -6.86, -1.84, -5 );
+    scale = 0.008
+    overlayTxt.scale.set( scale, scale, scale );
+    // overlayTxt.rotation.x = -0.08;
+    overlayTxt.rotation.y = 0.56;
+    // overlayTxt.rotation.z = 0.02;
+
+    bend(overlayTxt, 210);
+    overlayTxt.renderOrder = 20;
+    scene.add(overlayTxt);
+  };
+  textOverlay();
+
 
   // trigger function that begins to animate the scene.
   new TWEEN.Tween()
@@ -358,6 +379,7 @@ function onDocumentMouseWheel( event ) {
 
 function animate() {
   TWEEN.update();
+  texture.needsUpdate = true;
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
   update();
@@ -365,7 +387,7 @@ function animate() {
 
 function update() {
   if ( isUserInteracting === false ) {
-    lon += -0.01;
+    //lon += -0.01;
   }
   lat = Math.max( - 85, Math.min( 85, lat ) );
   phi = THREE.Math.degToRad( 90 - lat );

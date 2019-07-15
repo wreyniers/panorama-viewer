@@ -13,21 +13,8 @@
     "details": "Shot via Mavic 2 Pro",
     "owner": "Wouter Reyniers",
     "image": "panos/vedauwoo.jpg",
-    "lonStart": -8, 
-    "latStart": -18,
+    "lonStart": -51, 
+    "latStart": -13,
     "fovStart": 38
-  },
-  {
-    "title": "Sunrise on Tintamarre",
-    "details": "Equirectangular panorama built from 8 pictures.",
-    "owner": "Alexandre Duret-Lutz",
-    "overlay": "images/tintamarre-overlay.png",
-    "image": "images/tintamarre.jpg",
-    "audio": "audio/235428__allanz10d__calm-ocean-breeze-simulation.ogg",
-    "source": "g",
-    "license": "Creative Commons",
-    "lonStart": 279, 
-    "latStart": -14,
-    "fovStart": 76.25
   }
 ]
