@@ -12,6 +12,7 @@
         padding: 0px;
         overflow: hidden;
         position:relative;
+        font-family: sans-serif;
       }  
 
 
@@ -72,10 +73,55 @@
         right:20px;
       }
 
+      .playControl {
+        position:absolute;
+        bottom: 0;
+        width:80%;
+        left:10%;
+        opacity:0;
+        transition: opacity .5s ease-out;
+        -moz-transition: opacity .5s ease-out;
+        -webkit-transition: opacity .5s ease-out;
+        -o-transition: opacity .5s ease-out;
+      }
+
+      .playControl button {
+        width:300px;
+        height:300px;
+        line-height:300px;
+        font-size:60px;
+        margin:0 auto;
+        display:block;
+      }
+      .playControl:hover {
+          opacity:.5;
+      }
+
+      .playControl .pause {
+        display:none;
+      }
+
+      .playControl.playing .pause {
+        display:block;
+      }
+      .playControl.playing .play {
+        display:none;
+      }
+
       #glcanvas{ 
         display:none;
         opacity:.5;
         position:absolute;
+      }
+
+      .parameters{
+        position: absolute;
+        background: rgba(0,0,0,.5);
+        bottom: 50px;
+        right: 50px;
+        width: 200px;
+        z-index:100;
+        padding:20px;
       }
 
     </style>
@@ -84,18 +130,30 @@
     <canvas id="glcanvas" width="1600" height="160">
       Your browser does not support the canvas element.
     </canvas>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
     <script src="js/lib/fetch.js"></script>
     <script src="https://threejs.org/build/three.js"></script>
     <script src="https://kit.fontawesome.com/c98c42096d.js"></script>
     <script src="js/tween.min.js"></script>
     <script src="js/main.js"></script>
-    
+    <div class="parameters">
+      <div>lat: <span class="latVal"></span></div>
+      <div>lon: <span class="lonVal"></span></div>
+      <div>fov: <span class="fovVal"></span></div>
+      <div>latDiff: <span class="latDiff"></span></div>
+      <div>lonDiff: <span class="lonDiff"></span></div>
+      <div>fovDiff: <span class="fovDiff"></span></div>
+    </div>
 
     <div class="edge left">
       <button class="changePano prev" ><i class="fas fa-chevron-left"></i></button>
     </div>
     <div class="edge right">
       <button class="changePano next"><i class="fas fa-chevron-right"></i></button>
+    </div>
+    <div class="playControl">
+      <button class="play"><i class="fas fa-play"></i></button>
+      <button class="pause"><i class="fas fa-pause"></i></button>
     </div>
   </body>
 </html>

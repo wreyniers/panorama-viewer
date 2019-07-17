@@ -49,6 +49,15 @@ var scene;
 var lonStart;
 var latStart;
 var fovStart;
+var animatePano = false;
+var animateSpeed = 0.02;
+var amimateDirection = "left";
+var animatePosition = 0;
+var nextAnimatePosition = 0;
+var latComplete = false;
+var lonComplete = false;
+var fovComplete = false;
+var lonDiff, latDiff, fovDiff, lonNext, latNext, fovNext;
 
 
 function bend( group, amount, multiMaterialObject ) {
@@ -100,59 +109,25 @@ function loadPano() {
 
     panoCurrent = panos[counter];
     var imgPano = panoCurrent.image;
-    var imgOverlay = panoCurrent.overlay;
-    
-
-    
-    latStart = panoCurrent.latStart;
-    lonStart = panoCurrent.lonStart;
-    fovStart = panoCurrent.fovStart;
-
-    // fade out current panorama.
-    new TWEEN.Tween(pano.material)
-      .to({opacity: 0}, 300)
-      .onComplete(function () {
-        // load in new panorama texture.        
-        pano.material.map = THREE.ImageUtils.loadTexture(imgPano, THREE.UVMapping, fadeIn);
-        var texture = new THREE.TextureLoader().load(imgPano);
-        var material = new THREE.MeshBasicMaterial( { map: texture } );
+    var texture = new THREE.TextureLoader();
+    texture.load(imgPano,
+      function(texture) {
+        var material = new THREE.MeshBasicMaterial( { map: texture, transparent: true  } ); 
         pano.material = material;
         pano.material.map.minFilter = THREE.LinearFilter;
         positionCamera();
-      })
-      .start();
+        animatePano = true;
+      }
+    ); 
 
-    // fade out current title.
-    new TWEEN.Tween(overlayTxt.children[0].material)
-      .to({opacity: 1}, 300)
-      .onComplete(function () {
-        // load in new title.
-        //var texture = new THREE.TextureLoader().load(imgOverlay);
-        //var material = new THREE.MeshBasicMaterial( { map: texture } );
-        //overlay.children[0].material = material;
-        //overlay.children[0].material.map.minFilter = THREE.LinearFilter;
-        
-        //lat = latStart;
-        lat = latStart;
-        lon = lonStart;
-      }).start();
+    var imgOverlay = panoCurrent.overlay;
 
-    // fade in newly loaded panorama.
-    function fadeIn() {  
-      new TWEEN.Tween(pano.material)
-        .to({opacity: 1}, 1000)
-        .onComplete(fadeInOverlay)
-        .start();
-    }
-
-    // fade in newly loaded title.
-    function fadeInOverlay() {
-      console.log (overlay)
-      new TWEEN.Tween(overlayTxt.children[0].material)
-        .to({opacity: 1}, 300)
-        .start();
-    }
-
+    // get first motion position
+    console.log("Current Position: ")
+    console.log(panoCurrent.motion[animatePosition]);
+    latStart = panoCurrent.motion[animatePosition].lat;
+    lonStart = panoCurrent.motion[animatePosition].lon;
+    fovStart = panoCurrent.motion[animatePosition].fov;
   });
 
   function positionCamera() {
@@ -160,10 +135,32 @@ function loadPano() {
     lon = lonStart;
     camera.fov = fovStart;
     camera.updateProjectionMatrix();
+    getNextAnimatePosition();
   }
 }
 
+function getNextAnimatePosition() {
+  nextAnimatePosition ++;
+  if (nextAnimatePosition == panoCurrent.motion.length) {
+    nextAnimatePosition = 0;
+  }
 
+  latNext = panoCurrent.motion[nextAnimatePosition].lat;
+  lonNext = panoCurrent.motion[nextAnimatePosition].lon;
+  fovNext = panoCurrent.motion[nextAnimatePosition].fov;
+  
+  latDiff = latNext - lat;
+  lonDiff = lonNext - lon;
+  fovDiff = fovNext - camera.fov;
+
+  speedCoef = Math.abs(animateSpeed / lonDiff);
+  lonSpeed = lonDiff * speedCoef;
+  latSpeed = latDiff * speedCoef;
+  fovSpeed = fovDiff * speedCoef;  
+
+  console.log("Next Position: ")
+  console.log(panoCurrent.motion[nextAnimatePosition]);
+}
 
 
 // initialize scene
@@ -215,8 +212,8 @@ function init() {
   // Fetch the JSON list of panos
   function loadMaterial() {
     var texture = new THREE.TextureLoader().load('images/background.jpg'),resolve;
-    var material = new THREE.MeshBasicMaterial( { map: texture } );
-    //material.map.minFilter = THREE.LinearFilter;
+    var material = new THREE.MeshBasicMaterial( { map: texture, transparent: true } );
+    material.map.minFilter = THREE.LinearFilter;
     pano = new THREE.Mesh( geometry, material );
     pano.renderOrder = 20;
     
@@ -258,7 +255,7 @@ function init() {
 
     bend(overlayTxt, 210);
     overlayTxt.renderOrder = 20;
-    scene.add(overlayTxt);
+    //scene.add(overlayTxt);
   };
   textOverlay();
 
@@ -360,9 +357,8 @@ function onPointerMove( event ) {
   if ( isUserInteracting === true ) {
     var clientX = event.clientX || event.touches[ 0 ].clientX;
     var clientY = event.clientY || event.touches[ 0 ].clientY;
-    lon = ( onMouseDownMouseX - clientX ) * 0.025 + onMouseDownLon;
-    lat = ( clientY - onMouseDownMouseY ) * 0.025 + onMouseDownLat;
-    console.log ("lon: "+ lon + " lat: " + lat)
+    lon = ( onMouseDownMouseX - clientX ) * 0.05 + onMouseDownLon;
+    lat = ( clientY - onMouseDownMouseY ) * 0.05 + onMouseDownLat;
   }
 }
 
@@ -374,7 +370,19 @@ function onDocumentMouseWheel( event ) {
   var fov = camera.fov + event.deltaY * 0.01;
   camera.fov = THREE.Math.clamp( fov, 20, 75 );
   console.log("fov: " + fov)
+
   camera.updateProjectionMatrix();
+}
+
+function updateParameters() {
+  $(".fovVal" ).text(Math.round(camera.fov * 100) / 100);
+  $(".latVal" ).text(Math.round(lat * 100) / 100);
+  $(".lonVal" ).text(Math.round(lon * 100) / 100);
+
+  $(".latDiff").text(Math.round(latDiff * 100) / 100);
+  $(".lonDiff").text(Math.round(lonDiff * 100) / 100);
+  $(".fovDiff").text(Math.round(fovDiff * 100) / 100);
+  
 }
 
 function animate() {
@@ -386,18 +394,47 @@ function animate() {
 }
 
 function update() {
-  if ( isUserInteracting === false ) {
-    //lon += -0.01;
+  if ( isUserInteracting === false && animatePano === true) {
+    if (Math.abs(lon - lonNext) > .1) {
+      lon += lonSpeed;  
+    }
+    else {
+      lonComplete = true;
+    }
+    if (Math.abs(lat - latNext) > .1) {
+      lat += latSpeed;  
+    }
+    else {
+      latComplete = true;
+    }
+
+    if (Math.abs(camera.fov - fovNext) > .1) {
+      camera.fov += fovSpeed;
+      camera.updateProjectionMatrix();
+    }
+    else {
+      fovComplete = true;
+    }
+    
+    if ( latComplete && lonComplete && fovComplete )
+      {
+        lonComplete = false;
+        latComplete = false;
+        fovComplete = false;
+        getNextAnimatePosition();
+      }
+
+    lonDiff = lon - lonNext;
+    latDiff = lat - latNext;
+    fovDiff = camera.fov - fovNext;  
   }
   lat = Math.max( - 85, Math.min( 85, lat ) );
   phi = THREE.Math.degToRad( 90 - lat );
   theta = THREE.Math.degToRad( lon );
   
-  //console.log (lat, phi, theta)
   camera.target.x = 500 * Math.sin( phi ) * Math.cos( theta );
   camera.target.y = 500 * Math.cos( phi );
   camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
-  
   
   camera.lookAt( camera.target );
 
@@ -405,8 +442,22 @@ function update() {
   // distortion
   camera.position.copy( camera.target ).negate();
   */
-
+  updateParameters();
   renderer.render( scene, camera );
+}
+
+
+
+function playPano() {
+  animatePano = true;
+  // console.log ("animatePano: " + animatePano)
+  $('.playControl').addClass("playing")
+}
+
+function pausePano() {
+  animatePano = false;
+  // console.log ("animatePano: " + animatePano)
+  $('.playControl').removeClass("playing")
 }
 
 document.addEventListener('fullscreenchange', onFullscreenChange);
@@ -416,11 +467,20 @@ window.addEventListener('resize', onWindowResize, false );
 
 
 window.onload=function(){
+
   document.querySelector('button.prev').addEventListener('click', function() { 
     previousPano()
   });
   document.querySelector('button.next').addEventListener('click', function() { 
     nextPano()
+  });
+
+  document.querySelector('button.play').addEventListener('click', function() { 
+    playPano();
+  });
+
+  document.querySelector('button.pause').addEventListener('click', function() { 
+    pausePano();
   });
 };
 

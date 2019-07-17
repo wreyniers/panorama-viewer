@@ -4,9 +4,15 @@
     "details": "Shot via Mavic 2 Pro",
     "owner": "Wouter Reyniers",
     "image": "panos/eleven-mile-dam.jpg",
-    "lonStart": 250, 
-    "latStart": -12,
-    "fovStart": 42
+    "motion": [
+        {"lat": -12, "lon": 250, "fov": 42},
+        {"lat": -13.15, "lon": 228.17, "fov": 53},
+        {"lat": -18, "lon": 161.72, "fov": 60.75},
+        {"lat": -19.8, "lon": 97.42, "fov": 60.75},
+        {"lat": -2.1, "lon": 51.57, "fov": 35.75},
+        {"lat": 2.85, "lon": -13.33, "fov": 28.25},
+        {"lat": -1.35, "lon": -88.08, "fov": 40.75}
+    ]
   },
   {
     "title": "Vedauwoo - Curt Gowdy State Park",
@@ -15,6 +21,15 @@
     "image": "panos/vedauwoo.jpg",
     "lonStart": -51, 
     "latStart": -13,
-    "fovStart": 38
+    "fovStart": 38,
+    "motion": [
+        {"lat": -12, "lon": 250, "fov": 42},
+        {"lat": -13.15, "lon": 228.17, "fov": 53},
+        {"lat": -18, "lon": 161.72, "fov": 60.75},
+        {"lat": -19.8, "lon": 97.42, "fov": 60.75},
+        {"lat": -2.1, "lon": 51.57, "fov": 35.75},
+        {"lat": 2.85, "lon": -13.33, "fov": 28.25},
+        {"lat": -1.35, "lon": -88.08, "fov": 40.75}
+    ]
   }
 ]
