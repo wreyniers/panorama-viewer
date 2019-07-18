@@ -108,25 +108,90 @@ function bend(group, amount, multiMaterialObject) {
     }
 }
 
+/**
+ * Loads THREE Textures with progress events
+ * @augments THREE.TextureLoader
+ */
+function AjaxTextureLoader(themanager) {
+    this.manager = themanager;
+    const cache = THREE.Cache;
+
+    // Turn on shared caching for FileLoader, ImageLoader and TextureLoader
+    cache.enabled = true;
+
+    const textureLoader = new THREE.TextureLoader(manager);
+    const fileLoader = new THREE.FileLoader();
+    fileLoader.setResponseType('blob');
+
+    function load(imgPano, onLoad, onProgress, onError) {
+        const cached = cache.get(imgPano);
+        if (cached) {
+            return cached;
+        } else {
+            fileLoader.load(imgPano, cacheImage, onProgress, onError);
+        }
+        
+        /**
+         * The cache is currently storing a Blob, but we need to cast it to an
+         * Image or else it won't work as a texture. TextureLoader won't do this
+         * automatically.
+         */
+        function cacheImage(blob) {
+            // ObjectURLs should be released as soon as is safe, to free memory
+            const objUrl = URL.createObjectURL(blob);
+            const image = document.createElementNS('http://www.w3.org/1999/xhtml', 'img');
+
+            image.onload = ()=> {
+                $(".description").text("Creating projection sphere...")
+                
+                cache.add(imgPano, image);
+                URL.revokeObjectURL(objUrl);
+                document.body.removeChild(image);
+                loadImageAsTexture();
+            };
+
+            image.src = objUrl;
+            image.style.visibility = 'hidden';
+            document.body.appendChild(image);
+        }
+
+        function loadImageAsTexture() {
+            textureLoader.load(imgPano, onLoad, ()=> {}, onError);
+        }
+    }
+
+    return Object.assign({}, textureLoader, {load});
+}
+
+//module.exports = AjaxTextureLoader;
+
 function loadPano() {
+  $(".description").text("Downloading panorama image...")
+  $('#bar').val(0);
+  $(".loader").removeClass("hide");
     panosList.then(function(panos) {
 
         panoCurrent = panos[counter];
         var imgPano = panoCurrent.image;
-        var texture = new THREE.TextureLoader();
-        texture.load(imgPano,
-            function(texture) {
-                var material = new THREE.MeshBasicMaterial({
-                    map: texture,
-                    transparent: true
-                });
-                pano.material = material;
-                pano.material.map.minFilter = THREE.LinearFilter;
-                positionCamera();
-                animatePano = true;
-            }
-        );
+        var material = new THREE.MeshBasicMaterial();
 
+        var textureLoader = new AjaxTextureLoader(manager);
+        textureLoader.load( imgPano, function( texture ) {
+          material.map = texture;
+          material.needsUpdate = true;
+          pano.material=material;
+          pano.material.map.minFilter = THREE.LinearFilter;
+          positionCamera();   
+          setTimeout(function() {
+            $(".loader").addClass("hide");
+          }, 2000);
+        }, function(xhr) {
+              $(".percentageCounter").text(Math.round(xhr.loaded/xhr.total*100)+"%")
+              $(".byteCounter").text(Math.round(xhr.loaded/1024) + " / " + Math.round(xhr.total/1024) + " KB")
+              $('#bar').val(xhr.loaded/xhr.total*100);
+          
+        } );
+        
         var imgOverlay = panoCurrent.overlay;
 
         // get first motion position
@@ -400,6 +465,8 @@ function updateParameters() {
     $(".latDiff").text(Math.round(latDiff * 100) / 100);
     $(".lonDiff").text(Math.round(lonDiff * 100) / 100);
     $(".fovDiff").text(Math.round(fovDiff * 100) / 100);
+
+    $(".waypoint").text(nextAnimatePosition)
 
 }
 
