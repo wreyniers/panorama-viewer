@@ -54,7 +54,7 @@ var lonStart;
 var latStart;
 var fovStart;
 var animatePano = false;
-var animateSpeed = 0.02;
+var animateSpeed = 0.01;
 var amimateDirection = "left";
 var animatePosition = 0;
 var nextAnimatePosition = 0;
@@ -62,6 +62,7 @@ var latComplete = false;
 var lonComplete = false;
 var fovComplete = false;
 var lonDiff, latDiff, fovDiff, lonNext, latNext, fovNext;
+var titleShow = true;
 
 
 function bend(group, amount, multiMaterialObject) {
@@ -152,7 +153,7 @@ function AjaxTextureLoader(themanager) {
 
             image.src = objUrl;
             image.style.visibility = 'hidden';
-            document.body.appendChild(image);
+            document.body.appendChild(image).className="panoPlaceholder";
         }
 
         function loadImageAsTexture() {
@@ -300,6 +301,10 @@ function init() {
 
         pano.rotation.set(0, -100 * Math.PI / 180, 0);
         scene.add(pano);
+        setTimeout(function() { 
+          toggleTitle() 
+          setTimeout(function() { togglePlay() }, 4000);
+        }, 4000);  
     }
     panosList.then(loadMaterial).then(loadPano);
 
@@ -310,47 +315,54 @@ function init() {
 
     function textOverlay() {
 
-        var glcanvas = document.getElementById("glcanvas");
-        var ctx = glcanvas.getContext("2d");
-        ctx.font = "160px cooper";
-        ctx.fillStyle = "white";
-        ctx.fillText("Eleven Mile Dam", 110, 120);
+      var glcanvas = document.getElementById("glcanvas");
+      var ctx = glcanvas.getContext("2d");
+      ctx.font = "700 160px Montserrat";
+      ctx.fillStyle = "white";
+      ctx.fillText("Eleven Mile Dam", 110, 120);
+      ctx.font = "400 60px Montserrat";
+      ctx.fillText("photo by Wouter Reyniers", 700, 180);
 
-        overlayTxt = new THREE.Object3D();
-        texture = new THREE.Texture(glcanvas);
-        var material = new THREE.MeshBasicMaterial({
-            map: texture,
-            transparent: true
-        });
-        material.map.minFilter = THREE.LinearFilter;
-        var mesh = new THREE.Mesh(
-            new THREE.PlaneGeometry(400, 40, 20, 20),
-            material
-        );
+      overlayTxt = new THREE.Object3D();
+      texture = new THREE.Texture(glcanvas);
+      var material = new THREE.MeshBasicMaterial({
+          map: texture,
+          transparent: true,
+          opacity:0
+      });
+      material.map.minFilter = THREE.LinearFilter;
+      var mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(400, 65, 20, 20),
+          material
+      );
 
-        overlayTxt.add(mesh)
-        overlayTxt.position.set(-6.86, -1.84, -5);
-        scale = 0.008
-        overlayTxt.scale.set(scale, scale, scale);
-        // overlayTxt.rotation.x = -0.08;
-        overlayTxt.rotation.y = 0.56;
-        // overlayTxt.rotation.z = 0.02;
+      overlayTxt.add(mesh)
+      overlayTxt.position.set(-7.02, -1.86, -5);
+      scale = 0.008
+      overlayTxt.scale.set(scale, scale, scale);
+      // overlayTxt.rotation.x = -0.08;
+      overlayTxt.rotation.y = 0.56;
+      // overlayTxt.rotation.z = 0.02;
 
-        bend(overlayTxt, 210);
-        overlayTxt.renderOrder = 20;
-        //scene.add(overlayTxt);
+      bend(overlayTxt, 210);
+      overlayTxt.renderOrder = 20;
+      scene.add(overlayTxt);
     };
+
     textOverlay();
 
-
-    // trigger function that begins to animate the scene.
-    new TWEEN.Tween()
-        .delay(400)
-        .start();
-
-    // kick off animation
+   // kick off animation
     animate();
     onWindowResize();
+}
+
+function toggleTitle() {
+  if (titleShow) {
+    TweenLite.to(overlayTxt.children[0].material, 2, {opacity: 1});
+  }
+  else {
+    TweenLite.to(overlayTxt.children[0].material, 2, {opacity: 0});
+  }
 }
 
 function requestFullscreen() {
@@ -408,6 +420,16 @@ function previousPano() {
 
 
 function onkey(e) {
+    /* Listen for [i] key to toggle param view */
+    if (e.keyCode == '73') {
+      $('.parameters').toggle();
+    }
+
+    /* Listen for [space] key to toggle animation play state */
+    if (e.keyCode == '32') {
+      togglePlay();
+    }
+
     panosList.then(function(panos) {
         if (e.keyCode == '37') { // left arrow - prev panorama
             counter--;
@@ -471,7 +493,6 @@ function updateParameters() {
 }
 
 function animate() {
-    TWEEN.update();
     texture.needsUpdate = true;
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
@@ -527,19 +548,18 @@ function update() {
     renderer.render(scene, camera);
 }
 
-
-
-function playPano() {
-    animatePano = true;
-    // console.log ("animatePano: " + animatePano)
-    $('.playControl').addClass("playing")
-}
-
-function pausePano() {
+function togglePlay() {
+  if (animatePano) {
     animatePano = false;
-    // console.log ("animatePano: " + animatePano)
     $('.playControl').removeClass("playing")
-}
+  }
+  else {
+    animatePano = true;
+    $('.playControl').addClass("playing");    
+    titleShow = false;
+    setTimeout(function() { toggleTitle() }, 2000);
+  }
+};
 
 document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('mozfullscreenchange', onFullscreenChange);
@@ -557,11 +577,11 @@ window.onload = function() {
     });
 
     document.querySelector('button.play').addEventListener('click', function() {
-        playPano();
+        togglePlay();
     });
 
     document.querySelector('button.pause').addEventListener('click', function() {
-        pausePano();
+        togglePlay();
     });
 };
 
