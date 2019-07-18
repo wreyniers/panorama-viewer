@@ -15,7 +15,6 @@
         font-family: sans-serif;
       }  
 
-
       canvas, .edge {cursor: move;}
       button, input[type="submit"], input[type="reset"] {
         background: none;
@@ -63,12 +62,15 @@
         -webkit-transition: opacity .5s ease-out;
         -o-transition: opacity .5s ease-out;
       }
+
       button.changePano:hover {
         opacity:.75;
-      }  
+      } 
+
       button.prev {
         left:20px;
       }
+
       button.next {
         right:20px;
       }
@@ -93,6 +95,7 @@
         margin:0 auto;
         display:block;
       }
+
       .playControl:hover {
           opacity:.5;
       }
@@ -104,6 +107,7 @@
       .playControl.playing .pause {
         display:block;
       }
+
       .playControl.playing .play {
         display:none;
       }
@@ -124,6 +128,80 @@
         padding:20px;
       }
 
+      .loader {
+        position: absolute;
+        width:60%;
+        top: 50vh;
+        z-index:1010;
+        background:#27252c;
+        left:50%;
+        margin-left:-30%;
+        
+        box-shadow: 0 0 20px -1px #27252c;  
+        padding:30px;
+        opacity:1;
+        transition: opacity 0.5s ease-out;
+        -moz-transition: opacity 0.5s ease-out;
+        -webkit-transition: opacity 0.5s ease-out;
+        -o-transition: opacity 0.5s ease-out;
+      }
+
+      .loader.hide {
+        opacity:0;
+      }
+
+      .loader .percentageCounter {
+        font-size:16px;
+        text-align: center;
+        display:inline-block;
+        top:-13px;
+        position:relative;
+        width:100%;
+      }
+
+      .loader .byteCounter {
+        position:relative;
+        width:98%;
+        color:#a4a4a4;
+        font-size:12px;
+        text-align:right;
+        display:block;
+        padding-bottom:10px;
+        margin-left:1%;
+      }
+
+      .loader .description {
+        text-align:center;
+        display:inline-block;
+        width:100%;
+        font-size:20px;
+        margin-bottom:25px;
+      }
+
+      progress, .counter{
+        display: inline-block;
+        width: 98%;
+        border-radius: 10px;
+        position:relative;
+        left:50%;
+        margin-left:-49%;
+      }
+
+      progress::-webkit-progress-bar{
+        height: 25px;
+        border: 1px solid #2b2931;
+        border-radius: 10px;
+        background-color: #333039;
+        box-shadow: 0 1px 0 #4d4856;
+      }
+
+      progress::-webkit-progress-value{
+        height: 24px;
+        background-color: #0077c6;
+        border: 1px solid #30a1e1;
+        border-radius: 10px;
+        box-shadow: 0 0 20px -1px #005db9;  
+      }
     </style>
   </head>
   <body>
@@ -136,10 +214,21 @@
     <script src="https://kit.fontawesome.com/c98c42096d.js"></script>
     <script src="js/tween.min.js"></script>
     <script src="js/main.js"></script>
+
+    <div class="loader">    
+      <div class="counter">
+          <span class="description">Downloading panorama image...</span>
+          <progress id="bar" value="0" max="100" ng-model="prog"></progress>
+          <span class="percentageCounter"></span>
+          <span class="byteCounter"></span>
+      </div>
+    </div>
+    
     <div class="parameters">
       <div>lat: <span class="latVal"></span></div>
       <div>lon: <span class="lonVal"></span></div>
       <div>fov: <span class="fovVal"></span></div>
+      <div>waypoint: <span class="waypoint"></span></div>
       <div>latDiff: <span class="latDiff"></span></div>
       <div>lonDiff: <span class="lonDiff"></span></div>
       <div>fovDiff: <span class="fovDiff"></span></div>
@@ -148,12 +237,15 @@
     <div class="edge left">
       <button class="changePano prev" ><i class="fas fa-chevron-left"></i></button>
     </div>
+
     <div class="edge right">
       <button class="changePano next"><i class="fas fa-chevron-right"></i></button>
     </div>
+
     <div class="playControl">
       <button class="play"><i class="fas fa-play"></i></button>
       <button class="pause"><i class="fas fa-pause"></i></button>
     </div>
+    
   </body>
 </html>
