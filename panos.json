@@ -4,11 +4,11 @@
     "details": "Shot via Mavic 2 Pro",
     "owner": "Wouter Reyniers",
     "image": "panos/eleven-mile-dam.jpg",
+    "audio": "audio/UKDistantWeir-highpass.mp3",
     "motion": [
         {"lat": 3.15, "lon": 228.17, "fov": 53},
         {"lat": -17.83, "lon": 198.57, "fov": 45.32},
         {"lat": -50.34, "lon": 153.83, "fov": 51.78},
-
         {"lat": -19.8, "lon": 97.42, "fov": 60.75},
         {"lat": -2.1, "lon": 51.57, "fov": 35.75},
         {"lat": 2.85, "lon": -13.33, "fov": 28.25},

@@ -54,6 +54,7 @@ var lonStart;
 var latStart;
 var fovStart;
 var animatePano = false;
+var audioPlaying = false;
 var animateSpeed = 0.01;
 var amimateDirection = "left";
 var animatePosition = 0;
@@ -62,7 +63,8 @@ var latComplete = false;
 var lonComplete = false;
 var fovComplete = false;
 var lonDiff, latDiff, fovDiff, lonNext, latNext, fovNext;
-var titleShow = true;
+var titleShow = false;
+var sound;
 
 
 function bend(group, amount, multiMaterialObject) {
@@ -164,53 +166,23 @@ function AjaxTextureLoader(themanager) {
     return Object.assign({}, textureLoader, {load});
 }
 
-//module.exports = AjaxTextureLoader;
+function startAudio(audioFile) {
+      var listener = new THREE.AudioListener();
+      camera.add( listener );
 
-function loadPano() {
-  $(".description").text("Downloading panorama image...")
-  $('#bar').val(0);
-  $(".loader").removeClass("hide");
-    panosList.then(function(panos) {
+      // create a global audio source
+      sound = new THREE.Audio( listener );
 
-        panoCurrent = panos[counter];
-        var imgPano = panoCurrent.image;
-        var material = new THREE.MeshBasicMaterial();
-
-        var textureLoader = new AjaxTextureLoader(manager);
-        textureLoader.load( imgPano, function( texture ) {
-          material.map = texture;
-          material.needsUpdate = true;
-          pano.material=material;
-          pano.material.map.minFilter = THREE.LinearFilter;
-          positionCamera();   
-          setTimeout(function() {
-            $(".loader").addClass("hide");
-          }, 2000);
-        }, function(xhr) {
-              $(".percentageCounter").text(Math.round(xhr.loaded/xhr.total*100)+"%")
-              $(".byteCounter").text(Math.round(xhr.loaded/1024) + " / " + Math.round(xhr.total/1024) + " KB")
-              $('#bar').val(xhr.loaded/xhr.total*100);
-          
-        } );
-        
-        var imgOverlay = panoCurrent.overlay;
-
-        // get first motion position
-        console.log("Current Position: ")
-        console.log(panoCurrent.motion[animatePosition]);
-        latStart = panoCurrent.motion[animatePosition].lat;
-        lonStart = panoCurrent.motion[animatePosition].lon;
-        fovStart = panoCurrent.motion[animatePosition].fov;
-    });
-
-    function positionCamera() {
-        lat = latStart;
-        lon = lonStart;
-        camera.fov = fovStart;
-        camera.updateProjectionMatrix();
-        getNextAnimatePosition();
+      // load a sound and set it as the Audio object's buffer
+      var audioLoader = new THREE.AudioLoader();
+      audioLoader.load( audioFile , function( buffer ) {
+        sound.setBuffer( buffer );
+        sound.setLoop( true );
+        sound.setVolume( 3 );
+        audioPlaying = true;
+        $('.playControl').addClass("audioPlaying");
+      });
     }
-}
 
 function getNextAnimatePosition() {
     nextAnimatePosition++;
@@ -286,35 +258,95 @@ function init() {
         document.body.style.opacity = 1;
     }, false);
 
+  function loadPano() {
+    $(".description").text("Downloading panorama image...")
+    $('#bar').val(0);
+    $(".loader").removeClass("hide");
+      panosList.then(function(panos) {
+
+        panoCurrent = panos[counter];
+        var imgPano = panoCurrent.image;
+        var audioFile = panoCurrent.audio;
+
+        var material = new THREE.MeshBasicMaterial();
+
+        var textureLoader = new AjaxTextureLoader(manager);
+        textureLoader.load( imgPano, function( panoTexture ) {
+          material.map = panoTexture;
+          material.transparent = true;
+          material.opacity = 0;
+          pano.material=material;
+          pano.material.map.minFilter = THREE.LinearFilter;
+          pano.renderOrder = 2;
+          pano.name = "Panorama";
+          
+          positionCamera();   
+          togglePlay();        
+
+          setTimeout(function() {
+            $(".loader").addClass("hide");
+            startAudio(audioFile);
+            setTimeout(function() {
+
+              TweenLite.to(pano.material, 5, {opacity: 1});
+              setTimeout(function() {                
+                scene.add(overlayTxt);
+                toggleTitle() 
+                    setTimeout(function() { toggleTitle(); }, 8000)
+                }, 5000)
+            }, 1000)
+          }, 2000);
+          
+          
+        }, function(xhr) {
+              $(".percentageCounter").text(Math.round(xhr.loaded/xhr.total*100)+"%")
+              $(".byteCounter").text(Math.round(xhr.loaded/1024) + " / " + Math.round(xhr.total/1024) + " KB")
+              $('#bar').val(xhr.loaded/xhr.total*100);
+          
+        } );
+        
+        // get first motion position
+        console.log("Current Position: ")
+        console.log(panoCurrent.motion[animatePosition]);
+        latStart = panoCurrent.motion[animatePosition].lat;
+        lonStart = panoCurrent.motion[animatePosition].lon;
+        fovStart = panoCurrent.motion[animatePosition].fov;
+    });
+
+
+
+    function positionCamera() {
+        lat = latStart;
+        lon = lonStart;
+        camera.fov = fovStart;
+        camera.updateProjectionMatrix();
+        getNextAnimatePosition();
+    }
+  }
+
+
     // Fetch the JSON list of panos
     function loadMaterial() {
-        var texture = new THREE.TextureLoader().load('images/background.jpg'),
+        var panoTexture = new THREE.TextureLoader().load('images/background.jpg'),
             resolve;
         var material = new THREE.MeshBasicMaterial({
-            map: texture,
-            transparent: true
+            map: panoTexture,
+            opacity: 1
         });
         material.map.minFilter = THREE.LinearFilter;
         pano = new THREE.Mesh(geometry, material);
-        pano.renderOrder = 20;
-
-
         pano.rotation.set(0, -100 * Math.PI / 180, 0);
-        scene.add(pano);
-        setTimeout(function() { 
-          toggleTitle() 
-          setTimeout(function() { togglePlay() }, 4000);
-        }, 4000);  
+        scene.add(pano);            
     }
+
     panosList.then(loadMaterial).then(loadPano);
 
     // panorma mesh
-    var geometry = new THREE.SphereBufferGeometry(500, 60, 40);
+    var geometry = new THREE.SphereBufferGeometry(50, 50, 50);
     geometry.scale(-1, 1, 1);
 
 
     function textOverlay() {
-
       var glcanvas = document.getElementById("glcanvas");
       var ctx = glcanvas.getContext("2d");
       ctx.font = "700 160px Montserrat";
@@ -324,10 +356,14 @@ function init() {
       ctx.fillText("photo by Wouter Reyniers", 700, 180);
 
       overlayTxt = new THREE.Object3D();
-      texture = new THREE.Texture(glcanvas);
+      overlayTxt.name = "Text Overlay";
+      textTexture = new THREE.Texture(glcanvas);
+      textTexture.needsUpdate = true;
+
       var material = new THREE.MeshBasicMaterial({
-          map: texture,
+          map: textTexture,
           transparent: true,
+          alphaTest: 0.5,
           opacity:0
       });
       material.map.minFilter = THREE.LinearFilter;
@@ -336,17 +372,14 @@ function init() {
           material
       );
 
-      overlayTxt.add(mesh)
+      overlayTxt.add(mesh);
       overlayTxt.position.set(-7.02, -1.86, -5);
       scale = 0.008
       overlayTxt.scale.set(scale, scale, scale);
       // overlayTxt.rotation.x = -0.08;
       overlayTxt.rotation.y = 0.56;
       // overlayTxt.rotation.z = 0.02;
-
       bend(overlayTxt, 210);
-      overlayTxt.renderOrder = 20;
-      scene.add(overlayTxt);
     };
 
     textOverlay();
@@ -354,15 +387,6 @@ function init() {
    // kick off animation
     animate();
     onWindowResize();
-}
-
-function toggleTitle() {
-  if (titleShow) {
-    TweenLite.to(overlayTxt.children[0].material, 2, {opacity: 1});
-  }
-  else {
-    TweenLite.to(overlayTxt.children[0].material, 2, {opacity: 0});
-  }
 }
 
 function requestFullscreen() {
@@ -493,7 +517,6 @@ function updateParameters() {
 }
 
 function animate() {
-    texture.needsUpdate = true;
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
     update();
@@ -530,6 +553,16 @@ function update() {
         latDiff = lat - latNext;
         fovDiff = camera.fov - fovNext;
     }
+    if (typeof sound !== 'undefined') {
+      if (audioPlaying) {
+        if (sound.isPlaying === false) {
+          sound.play();
+        }
+      }
+      else {
+        sound.pause();
+      }
+    }
     lat = Math.max(-85, Math.min(85, lat));
     phi = THREE.Math.degToRad(90 - lat);
     theta = THREE.Math.degToRad(lon);
@@ -557,9 +590,30 @@ function togglePlay() {
     animatePano = true;
     $('.playControl').addClass("playing");    
     titleShow = false;
-    setTimeout(function() { toggleTitle() }, 2000);
   }
 };
+
+function toggleTitle() {
+  if (titleShow) {
+    TweenLite.to(overlayTxt.children[0].material, 3, {opacity: 0});
+    titleShow = false;
+  }
+  else {
+    TweenLite.to(overlayTxt.children[0].material, 3, {opacity: 1});
+    titleShow = true;
+  }
+}
+
+function toggleAudio() {
+  if (audioPlaying) {
+    audioPlaying = false;
+    $('.playControl').removeClass("audioPlaying");
+  }      
+  else {
+    audioPlaying = true;
+    $('.playControl').addClass("audioPlaying");
+  }
+}
 
 document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('mozfullscreenchange', onFullscreenChange);
@@ -583,7 +637,14 @@ window.onload = function() {
     document.querySelector('button.pause').addEventListener('click', function() {
         togglePlay();
     });
-};
 
+    document.querySelector('button.volume-up').addEventListener('click', function() {
+        toggleAudio();
+    });   
+
+    document.querySelector('button.volume-off').addEventListener('click', function() {
+        toggleAudio();
+    }); 
+};
 
 init();
