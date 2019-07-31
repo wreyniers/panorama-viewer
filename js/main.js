@@ -179,8 +179,8 @@ function startAudio(audioFile) {
         sound.setBuffer( buffer );
         sound.setLoop( true );
         sound.setVolume( 3 );
-        audioPlaying = true;
-        $('.playControl').addClass("audioPlaying");
+        // audioPlaying = true;
+        //$('.playControl').addClass("audioPlaying");
       });
     }
 
@@ -281,20 +281,10 @@ function init() {
           pano.name = "Panorama";
           
           positionCamera();   
-          togglePlay();        
 
           setTimeout(function() {
             $(".loader").addClass("hide");
-            startAudio(audioFile);
-            setTimeout(function() {
-
-              TweenLite.to(pano.material, 5, {opacity: 1});
-              setTimeout(function() {                
-                scene.add(overlayTxt);
-                toggleTitle() 
-                    setTimeout(function() { toggleTitle(); }, 8000)
-                }, 5000)
-            }, 1000)
+            startAudio(audioFile);            
           }, 2000);
           
           
@@ -553,16 +543,16 @@ function update() {
         latDiff = lat - latNext;
         fovDiff = camera.fov - fovNext;
     }
-    if (typeof sound !== 'undefined') {
-      if (audioPlaying) {
-        if (sound.isPlaying === false) {
-          sound.play();
-        }
-      }
-      else {
-        sound.pause();
-      }
-    }
+    // if (typeof sound !== 'undefined') {
+    //   if (audioPlaying) {
+    //     if (sound.isPlaying === false) {
+    //       sound.play();
+    //     }
+    //   }
+    //   else {
+    //     sound.pause();
+    //   }
+    // }
     lat = Math.max(-85, Math.min(85, lat));
     phi = THREE.Math.degToRad(90 - lat);
     theta = THREE.Math.degToRad(lon);
@@ -584,10 +574,20 @@ function update() {
 function togglePlay() {
   if (animatePano) {
     animatePano = false;
+    sound.pause();
     $('.playControl').removeClass("playing")
   }
   else {
+
+    TweenLite.to(pano.material, 5, {opacity: 1});
+              setTimeout(function() {                
+                scene.add(overlayTxt);
+                toggleTitle() 
+                    setTimeout(function() { toggleTitle(); }, 8000)
+                }, 5000);
+
     animatePano = true;
+    sound.play();
     $('.playControl').addClass("playing");    
     titleShow = false;
   }
@@ -638,13 +638,13 @@ window.onload = function() {
         togglePlay();
     });
 
-    document.querySelector('button.volume-up').addEventListener('click', function() {
-        toggleAudio();
-    });   
+    // document.querySelector('button.volume-up').addEventListener('click', function() {
+    //     toggleAudio();
+    // });   
 
-    document.querySelector('button.volume-off').addEventListener('click', function() {
-        toggleAudio();
-    }); 
+    // document.querySelector('button.volume-off').addEventListener('click', function() {
+    //     toggleAudio();
+    // }); 
 };
 
 init();
