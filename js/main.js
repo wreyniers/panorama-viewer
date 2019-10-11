@@ -1,14 +1,3 @@
-// url parameters
-var parameters = (function() {
-    var parameters = {};
-    var parts = window.location.search.substr(1).split('&');
-    for (var i = 0; i < parts.length; i++) {
-        var parameter = parts[i].split('=');
-        parameters[parameter[0]] = parameter[1];
-    }
-    return parameters;
-})();
-
 (function() {
     var panosList = fetchPanos();
 
@@ -17,10 +6,20 @@ var parameters = (function() {
             return response.json();
         });
     }
-
     self.panosList = panosList;
 })();
-
+var getUrlParameter = function getUrlParameter(sParam) {
+    var sPageURL = window.location.search.substring(1),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i;
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+        if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : decodeURIComponent(sParameterName[1]);
+        }
+    }
+};
 var isMobile = function() {
     var check = false;
     (function(a) {
@@ -30,7 +29,6 @@ var isMobile = function() {
     })(navigator.userAgent || navigator.vendor || window.opera);
     return check;
 };
-
 var camera;
 var clock = new THREE.Clock();
 var isUserInteracting = false,
@@ -47,6 +45,7 @@ var effect;
 var manager;
 var overlay;
 var pano;
+var panoId;
 var panoCurrent;
 var renderer;
 var scene;
@@ -55,7 +54,7 @@ var latStart;
 var fovStart;
 var animatePano = false;
 var audioPlaying = false;
-var animateSpeed = 0.01;
+var animateSpeed = 0.02;
 var amimateDirection = "left";
 var animatePosition = 0;
 var nextAnimatePosition = 0;
@@ -65,42 +64,36 @@ var fovComplete = false;
 var lonDiff, latDiff, fovDiff, lonNext, latNext, fovNext;
 var titleShow = false;
 var sound;
-
-
+var rendererStats = new THREEx.RendererStats();
+rendererStats.domElement.style.position = 'absolute'
+rendererStats.domElement.style.left = '0px'
+rendererStats.domElement.style.bottom = '0px'
+    //document.body.appendChild(rendererStats.domElement)
 function bend(group, amount, multiMaterialObject) {
     function bendVertices(mesh, amount, parent) {
         var vertices = mesh.geometry.vertices;
-
         if (!parent) {
             parent = mesh;
         }
-
         for (var i = 0; i < vertices.length; i++) {
             var vertex = vertices[i];
-
             // apply bend calculations on vertexes from world coordinates
             parent.updateMatrixWorld();
-
             var worldVertex = parent.localToWorld(vertex);
-
             var worldX = Math.sin(worldVertex.x / amount) * amount;
             var worldZ = -Math.cos(worldVertex.x / amount) * amount;
             var worldY = worldVertex.y;
-
             // convert world coordinates back into local object coordinates.
             var localVertex = parent.worldToLocal(new THREE.Vector3(worldX, worldY, worldZ));
             vertex.x = localVertex.x;
             vertex.z = localVertex.z + amount;
             vertex.y = localVertex.y;
         }
-
         mesh.geometry.computeBoundingSphere();
         mesh.geometry.verticesNeedUpdate = true;
     }
-
     for (var i = 0; i < group.children.length; i++) {
         var element = group.children[i];
-
         if (element.geometry.vertices) {
             if (multiMaterialObject) {
                 bendVertices(element, amount, group);
@@ -110,7 +103,6 @@ function bend(group, amount, multiMaterialObject) {
         }
     }
 }
-
 /**
  * Loads THREE Textures with progress events
  * @augments THREE.TextureLoader
@@ -118,10 +110,8 @@ function bend(group, amount, multiMaterialObject) {
 function AjaxTextureLoader(themanager) {
     this.manager = themanager;
     const cache = THREE.Cache;
-
     // Turn on shared caching for FileLoader, ImageLoader and TextureLoader
     cache.enabled = true;
-
     const textureLoader = new THREE.TextureLoader(manager);
     const fileLoader = new THREE.FileLoader();
     fileLoader.setResponseType('blob');
@@ -133,7 +123,6 @@ function AjaxTextureLoader(themanager) {
         } else {
             fileLoader.load(imgPano, cacheImage, onProgress, onError);
         }
-        
         /**
          * The cache is currently storing a Blob, but we need to cast it to an
          * Image or else it won't work as a texture. TextureLoader won't do this
@@ -143,71 +132,62 @@ function AjaxTextureLoader(themanager) {
             // ObjectURLs should be released as soon as is safe, to free memory
             const objUrl = URL.createObjectURL(blob);
             const image = document.createElementNS('http://www.w3.org/1999/xhtml', 'img');
-
-            image.onload = ()=> {
+            image.onload = () => {
                 $(".description").text("Creating projection sphere...")
-                
                 cache.add(imgPano, image);
                 URL.revokeObjectURL(objUrl);
                 document.body.removeChild(image);
                 loadImageAsTexture();
             };
-
             image.src = objUrl;
             image.style.visibility = 'hidden';
-            document.body.appendChild(image).className="panoPlaceholder";
+            document.body.appendChild(image).className = "panoPlaceholder";
         }
 
         function loadImageAsTexture() {
-            textureLoader.load(imgPano, onLoad, ()=> {}, onError);
+            textureLoader.load(imgPano, onLoad, () => {}, onError);
         }
     }
-
-    return Object.assign({}, textureLoader, {load});
+    return Object.assign({}, textureLoader, {
+        load
+    });
 }
 
 function startAudio(audioFile) {
-      var listener = new THREE.AudioListener();
-      camera.add( listener );
-
-      // create a global audio source
-      sound = new THREE.Audio( listener );
-
-      // load a sound and set it as the Audio object's buffer
-      var audioLoader = new THREE.AudioLoader();
-      audioLoader.load( audioFile , function( buffer ) {
-        sound.setBuffer( buffer );
-        sound.setLoop( true );
-        sound.setVolume( 3 );
-        // audioPlaying = true;
-        //$('.playControl').addClass("audioPlaying");
-      });
-    }
+    var listener = new THREE.AudioListener();
+    listener.name = "Sound";
+    camera.add(listener);
+    // create a global audio source
+    sound = new THREE.Audio(listener);
+    // load a sound and set it as the Audio object's buffer
+    var audioLoader = new THREE.AudioLoader();
+    audioLoader.load(audioFile, function(buffer) {
+        sound.setBuffer(buffer);
+        sound.setLoop(true);
+        sound.setVolume(3);
+        audioPlaying = true;
+        $('.playControl').addClass("audioPlaying");
+    });
+}
 
 function getNextAnimatePosition() {
     nextAnimatePosition++;
     if (nextAnimatePosition == panoCurrent.motion.length) {
         nextAnimatePosition = 0;
     }
-
     latNext = panoCurrent.motion[nextAnimatePosition].lat;
     lonNext = panoCurrent.motion[nextAnimatePosition].lon;
     fovNext = panoCurrent.motion[nextAnimatePosition].fov;
-
     latDiff = latNext - lat;
     lonDiff = lonNext - lon;
     fovDiff = fovNext - camera.fov;
-
     speedCoef = Math.abs(animateSpeed / lonDiff);
     lonSpeed = lonDiff * speedCoef;
     latSpeed = latDiff * speedCoef;
     fovSpeed = fovDiff * speedCoef;
-
     console.log("Next Position: ")
     console.log(panoCurrent.motion[nextAnimatePosition]);
 }
-
-
 // initialize scene
 function init() {
     renderer = new THREE.WebGLRenderer({
@@ -220,12 +200,12 @@ function init() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
-
     scene = new THREE.Scene();
+    scene.name = "Scene";
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1100);
+    camera.name = "Camera"
     camera.target = new THREE.Vector3(0, 0, 0);
     scene.add(camera);
-
     // Event Listeners
     document.addEventListener('mousedown', onPointerStart, false);
     document.addEventListener('mousemove', onPointerMove, false);
@@ -234,67 +214,92 @@ function init() {
     document.addEventListener('touchstart', onPointerStart, false);
     document.addEventListener('touchmove', onPointerMove, false);
     document.addEventListener('touchend', onPointerUp, false);
+    // kick off animation
+    animate();
+    onWindowResize();
+    panosList.then(loadPano);
+    // panorma mesh
+    geometry = new THREE.SphereBufferGeometry(50, 50, 50);
+    geometry.scale(-1, 1, 1);
+}
 
+function clearThree(obj) {
+    while (obj.children.length > 0) {
+        clearThree(obj.children[0])
+        obj.remove(obj.children[0]);
+    }
+    if (obj.geometry) obj.geometry.dispose()
+    if (obj.material) {
+        //in case of map, bumpMap, normalMap, envMap ...
+        console.log(obj.material)
+        Object.keys(obj.material).forEach(prop => {
+            if (!obj.material[prop]) return
+            if (typeof obj.material[prop].dispose === 'function') obj.material[prop].dispose()
+        })
+        obj.material.dispose()
+    }
+}
 
-    // Drop in images
-    document.addEventListener('dragover', function(event) {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'copy';
-    }, false);
-    document.addEventListener('dragenter', function() {
-        document.body.style.opacity = 0.5;
-    }, false);
-    document.addEventListener('dragleave', function() {
-        document.body.style.opacity = 1;
-    }, false);
-    document.addEventListener('drop', function(event) {
-        event.preventDefault();
-        var reader = new FileReader();
-        reader.addEventListener('load', function(event) {
-            material.map.image.src = event.target.result;
-            material.map.needsUpdate = true;
-        }, false);
-        reader.readAsDataURL(event.dataTransfer.files[0]);
-        document.body.style.opacity = 1;
-    }, false);
+function clearPano() {
+    if (sound.isPlaying) {
+        sound.stop();
+        sound = "";
+        audioPlaying = false;
+    }
+    clearThree(scene);
+    scene.dispose();
+}
 
-  function loadPano() {
+function loadPano() {
     $(".description").text("Downloading panorama image...")
     $('#bar').val(0);
     $(".loader").removeClass("hide");
-      panosList.then(function(panos) {
-
-        panoCurrent = panos[counter];
+    var panoTexture;
+    //var panoTexture = new THREE.TextureLoader().load('images/background.jpg');
+    var material = new THREE.MeshBasicMaterial({
+        //map: panoTexture,
+        color: 0x000000,
+        opacity: 0
+    });
+    //material.map.minFilter = THREE.LinearFilter;
+    pano = new THREE.Mesh(geometry, material);
+    pano.name = "Panorama";
+    pano.rotation.set(0, -100 * Math.PI / 180, 0);
+    scene.add(pano);
+    panosList.then(function(panos) {
+        if (panoId == undefined) {
+            panoId = getUrlParameter('pano');
+        }
+        console.log("panoId: " + panoId);
+        panoCurrent = panos[panoId];
+        console.log(panoCurrent);
         var imgPano = panoCurrent.image;
+        var panoTitle = panoCurrent.title;
+        var panoOwner = panoCurrent.owner;
+        var panoTextCoords = panoCurrent.textCoords[0]
         var audioFile = panoCurrent.audio;
-
         var material = new THREE.MeshBasicMaterial();
-
         var textureLoader = new AjaxTextureLoader(manager);
-        textureLoader.load( imgPano, function( panoTexture ) {
-          material.map = panoTexture;
-          material.transparent = true;
-          material.opacity = 0;
-          pano.material=material;
-          pano.material.map.minFilter = THREE.LinearFilter;
-          pano.renderOrder = 2;
-          pano.name = "Panorama";
-          
-          positionCamera();   
-
-          setTimeout(function() {
-            $(".loader").addClass("hide");
-            startAudio(audioFile);            
-          }, 2000);
-          
-          
+        console.log(panoTexture);
+        textureLoader.load(imgPano, function(panoTexture) {
+            material.map = panoTexture;
+            material.transparent = true;
+            material.opacity = 0;
+            pano.material = material;
+            pano.material.map.minFilter = THREE.LinearFilter;
+            pano.renderOrder = 2;
+            positionCamera();
+            setTimeout(function() {
+                $(".loader").addClass("hide");
+                textOverlay(panoTitle, panoTextCoords, panoOwner);
+                startAudio(audioFile);
+                playPano();
+            }, 2000);
         }, function(xhr) {
-              $(".percentageCounter").text(Math.round(xhr.loaded/xhr.total*100)+"%")
-              $(".byteCounter").text(Math.round(xhr.loaded/1024) + " / " + Math.round(xhr.total/1024) + " KB")
-              $('#bar').val(xhr.loaded/xhr.total*100);
-          
-        } );
-        
+            $(".percentageCounter").text(Math.round(xhr.loaded / xhr.total * 100) + "%")
+            $(".byteCounter").text(Math.round(xhr.loaded / 1024) + " / " + Math.round(xhr.total / 1024) + " KB")
+            $('#bar').val(xhr.loaded / xhr.total * 100);
+        });
         // get first motion position
         console.log("Current Position: ")
         console.log(panoCurrent.motion[animatePosition]);
@@ -302,91 +307,53 @@ function init() {
         lonStart = panoCurrent.motion[animatePosition].lon;
         fovStart = panoCurrent.motion[animatePosition].fov;
     });
-
-
-
-    function positionCamera() {
-        lat = latStart;
-        lon = lonStart;
-        camera.fov = fovStart;
-        camera.updateProjectionMatrix();
-        getNextAnimatePosition();
-    }
-  }
-
-
-    // Fetch the JSON list of panos
-    function loadMaterial() {
-        var panoTexture = new THREE.TextureLoader().load('images/background.jpg'),
-            resolve;
-        var material = new THREE.MeshBasicMaterial({
-            map: panoTexture,
-            opacity: 1
-        });
-        material.map.minFilter = THREE.LinearFilter;
-        pano = new THREE.Mesh(geometry, material);
-        pano.rotation.set(0, -100 * Math.PI / 180, 0);
-        scene.add(pano);            
-    }
-
-    panosList.then(loadMaterial).then(loadPano);
-
-    // panorma mesh
-    var geometry = new THREE.SphereBufferGeometry(50, 50, 50);
-    geometry.scale(-1, 1, 1);
-
-
-    function textOverlay() {
-      var glcanvas = document.getElementById("glcanvas");
-      var ctx = glcanvas.getContext("2d");
-      ctx.font = "700 160px Montserrat";
-      ctx.fillStyle = "white";
-      ctx.fillText("Eleven Mile Dam", 110, 120);
-      ctx.font = "400 60px Montserrat";
-      ctx.fillText("photo by Wouter Reyniers", 700, 180);
-
-      overlayTxt = new THREE.Object3D();
-      overlayTxt.name = "Text Overlay";
-      textTexture = new THREE.Texture(glcanvas);
-      textTexture.needsUpdate = true;
-
-      var material = new THREE.MeshBasicMaterial({
-          map: textTexture,
-          transparent: true,
-          alphaTest: 0.5,
-          opacity:0
-      });
-      material.map.minFilter = THREE.LinearFilter;
-      var mesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(400, 65, 20, 20),
-          material
-      );
-
-      overlayTxt.add(mesh);
-      overlayTxt.position.set(-7.02, -1.86, -5);
-      scale = 0.008
-      overlayTxt.scale.set(scale, scale, scale);
-      // overlayTxt.rotation.x = -0.08;
-      overlayTxt.rotation.y = 0.56;
-      // overlayTxt.rotation.z = 0.02;
-      bend(overlayTxt, 210);
-    };
-
-    textOverlay();
-
-   // kick off animation
-    animate();
-    onWindowResize();
 }
+
+function positionCamera() {
+    lat = latStart;
+    lon = lonStart;
+    camera.fov = fovStart;
+    camera.updateProjectionMatrix();
+    getNextAnimatePosition();
+}
+
+function textOverlay(panoTitle, panoTextCoords, panoOwner) {
+    var glcanvas = document.getElementById("glcanvas");
+    var ctx = glcanvas.getContext("2d");
+    ctx.clearRect(0, 0, 3200, 260);
+    ctx.font = "700 160px Montserrat";
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText(panoTitle, 1600, 120);
+    ctx.font = "400 60px Montserrat";
+    ctx.fillText("Photo by: " + panoOwner, 1600, 220);
+    overlayTxt = new THREE.Object3D();
+    overlayTxt.name = "Text Overlay";
+    textTexture = new THREE.Texture(glcanvas);
+    textTexture.needsUpdate = true;
+    var material = new THREE.MeshBasicMaterial({
+        map: textTexture,
+        transparent: true,
+        alphaTest: 0.5,
+        opacity: 0
+    });
+    material.map.minFilter = THREE.LinearFilter;
+    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(400, 65, 20, 20), material);
+    overlayTxt.add(mesh);
+    overlayTxt.position.set(panoTextCoords.x, panoTextCoords.y, panoTextCoords.z);
+    overlayTxt.scale.set(panoTextCoords.scale * 2, panoTextCoords.scale, panoTextCoords.scale);
+    // overlayTxt.rotation.x = -0.08;
+    overlayTxt.rotation.y = panoTextCoords.rotationY;
+    // overlayTxt.rotation.z = 0.02;
+    bend(overlayTxt, panoTextCoords.bend);
+};
 
 function requestFullscreen() {
     var el = renderer.domElement;
-
     if (!isMobile()) {
         effect.setFullScreen(true);
         return;
     }
-
     if (el.requestFullscreen) {
         el.requestFullscreen();
     } else if (el.mozRequestFullScreen) {
@@ -403,59 +370,57 @@ function onWindowResize() {
 }
 
 function onFullscreenChange(e) {
-    var fsElement = document.fullscreenElement ||
-        document.mozFullScreenElement ||
-        document.webkitFullscreenElement;
-
-
+    var fsElement = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement;
     // lock screen if mobile
     window.screen.orientation.lock('landscape');
 }
 
 function nextPano() {
     panosList.then(function(panos) {
-        counter++;
-        if (counter == panos.length) {
-            counter = 0;
+        panoId++;
+        if (panoId == panos.length) {
+            panoId = 0;
         }
+        clearPano();
         loadPano();
     })
 }
 
 function previousPano() {
     panosList.then(function(panos) {
-        counter--;
-        if (counter < 0) {
-            counter = panos.length - 1;
+        panoId--;
+        if (panoId < 0) {
+            panoId = panos.length - 1;
         }
+        clearPano();
         loadPano();
     })
 }
 
-
 function onkey(e) {
     /* Listen for [i] key to toggle param view */
     if (e.keyCode == '73') {
-      $('.parameters').toggle();
+        $('.parameters').toggle();
     }
-
     /* Listen for [space] key to toggle animation play state */
     if (e.keyCode == '32') {
-      togglePlay();
+        togglePlay();
     }
-
     panosList.then(function(panos) {
         if (e.keyCode == '37') { // left arrow - prev panorama
-            counter--;
-            if (counter < 0) {
-                counter = panos.length - 1;
+            panoId--;
+            if (panoId < 0) {
+                panoId = panos.length - 1;
             }
+            clearPano();
             loadPano();
         } else if (e.keyCode == '39') { // right arrow - next panorama
-            counter++;
-            if (counter == panos.length) {
-                counter = 0;
+            panoId++;
+            console.log(pano)
+            if (panoId == panos.length) {
+                panoId = 0;
             }
+            clearPano();
             loadPano();
         }
     });
@@ -489,7 +454,6 @@ function onDocumentMouseWheel(event) {
     var fov = camera.fov + event.deltaY * 0.01;
     camera.fov = THREE.Math.clamp(fov, 20, 75);
     console.log("fov: " + fov)
-
     camera.updateProjectionMatrix();
 }
 
@@ -497,17 +461,15 @@ function updateParameters() {
     $(".fovVal").text(Math.round(camera.fov * 100) / 100);
     $(".latVal").text(Math.round(lat * 100) / 100);
     $(".lonVal").text(Math.round(lon * 100) / 100);
-
     $(".latDiff").text(Math.round(latDiff * 100) / 100);
     $(".lonDiff").text(Math.round(lonDiff * 100) / 100);
     $(".fovDiff").text(Math.round(fovDiff * 100) / 100);
-
-    $(".waypoint").text(nextAnimatePosition)
-
+    $(".waypoint").text(nextAnimatePosition);
 }
 
 function animate() {
     renderer.render(scene, camera);
+    rendererStats.update(renderer);
     requestAnimationFrame(animate);
     update();
 }
@@ -524,45 +486,38 @@ function update() {
         } else {
             latComplete = true;
         }
-
         if (Math.abs(camera.fov - fovNext) > .1) {
             camera.fov += fovSpeed;
             camera.updateProjectionMatrix();
         } else {
             fovComplete = true;
         }
-
         if (latComplete && lonComplete && fovComplete) {
             lonComplete = false;
             latComplete = false;
             fovComplete = false;
             getNextAnimatePosition();
         }
-
         lonDiff = lon - lonNext;
         latDiff = lat - latNext;
         fovDiff = camera.fov - fovNext;
     }
-    // if (typeof sound !== 'undefined') {
-    //   if (audioPlaying) {
-    //     if (sound.isPlaying === false) {
-    //       sound.play();
-    //     }
-    //   }
-    //   else {
-    //     sound.pause();
-    //   }
-    // }
+    if (typeof sound !== 'undefined') {
+        if (audioPlaying) {
+            if (sound.isPlaying === false) {
+                sound.play();
+            }
+        } else {
+            //sound.pause();
+        }
+    }
     lat = Math.max(-85, Math.min(85, lat));
     phi = THREE.Math.degToRad(90 - lat);
     theta = THREE.Math.degToRad(lon);
-
     camera.target.x = 500 * Math.sin(phi) * Math.cos(theta);
     camera.target.y = 500 * Math.cos(phi);
     camera.target.z = 500 * Math.sin(phi) * Math.sin(theta);
-
     camera.lookAt(camera.target);
-
     /*
     // distortion
     camera.position.copy( camera.target ).negate();
@@ -572,79 +527,80 @@ function update() {
 }
 
 function togglePlay() {
-  if (animatePano) {
+    if (animatePano) {
+        pausePano();
+    } else {
+        playPano();
+    }
+};
+
+function playPano() {
+    TweenLite.to(pano.material, 5, {
+        opacity: 1
+    });
+    setTimeout(function() {
+        scene.add(overlayTxt);
+        toggleTitle()
+        setTimeout(function() {
+            toggleTitle();
+        }, 5000)
+    }, 2000);
+    animatePano = true;
+    $('.playControl').addClass("playing");
+    titleShow = false;
+}
+
+function pausePano() {
     animatePano = false;
     sound.pause();
     $('.playControl').removeClass("playing")
-  }
-  else {
-
-    TweenLite.to(pano.material, 5, {opacity: 1});
-              setTimeout(function() {                
-                scene.add(overlayTxt);
-                toggleTitle() 
-                    setTimeout(function() { toggleTitle(); }, 8000)
-                }, 5000);
-
-    animatePano = true;
-    sound.play();
-    $('.playControl').addClass("playing");    
-    titleShow = false;
-  }
-};
+}
 
 function toggleTitle() {
-  if (titleShow) {
-    TweenLite.to(overlayTxt.children[0].material, 3, {opacity: 0});
-    titleShow = false;
-  }
-  else {
-    TweenLite.to(overlayTxt.children[0].material, 3, {opacity: 1});
-    titleShow = true;
-  }
+    if (titleShow) {
+        TweenLite.to(overlayTxt.children[0].material, 3, {
+            opacity: 0
+        });
+        titleShow = false;
+    } else {
+        TweenLite.to(overlayTxt.children[0].material, 3, {
+            opacity: 1
+        });
+        titleShow = true;
+    }
 }
 
 function toggleAudio() {
-  if (audioPlaying) {
-    audioPlaying = false;
-    $('.playControl').removeClass("audioPlaying");
-  }      
-  else {
-    audioPlaying = true;
-    $('.playControl').addClass("audioPlaying");
-  }
+    if (audioPlaying) {
+        audioPlaying = false;
+        $('.playControl').removeClass("audioPlaying");
+    } else {
+        audioPlaying = true;
+        $('.playControl').addClass("audioPlaying");
+    }
 }
-
 document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('mozfullscreenchange', onFullscreenChange);
 window.addEventListener('keydown', onkey, true);
 window.addEventListener('resize', onWindowResize, false);
-
-
 window.onload = function() {
-
     document.querySelector('button.prev').addEventListener('click', function() {
         previousPano()
     });
     document.querySelector('button.next').addEventListener('click', function() {
         nextPano()
     });
-
     document.querySelector('button.play').addEventListener('click', function() {
         togglePlay();
     });
-
     document.querySelector('button.pause').addEventListener('click', function() {
         togglePlay();
     });
-
     // document.querySelector('button.volume-up').addEventListener('click', function() {
     //     toggleAudio();
     // });   
-
     // document.querySelector('button.volume-off').addEventListener('click', function() {
     //     toggleAudio();
     // }); 
 };
-
 init();

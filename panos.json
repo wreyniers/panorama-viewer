@@ -1,10 +1,33 @@
 [
   {
-    "title": "Elven Mile Dam",
+    "title": "Athens",
+    "details": "Shot via Mavic 2 Pro",
+    "owner": "Wouter Reyniers",
+    "image": "panos/athens.jpg",
+    "audio": "audio/SW013_Athens_Rooftop_Ambience_10AM_Morning_TLM103_5.mp3",
+    "textCoords": [
+        {"x": -0.46, "y": -2.46,"z": -5, "rotationY": 0.17, "bend":1000, "scale":0.008}
+    ],
+    "motion": [
+        {"lat": -7.83, "lon": -459.57, "fov": 61.62},  
+        {"lat": -8.45, "lon": -474.67, "fov": 50.14},
+        {"lat": -10.11, "lon": -566.75, "fov": 29.99},
+        {"lat": -5.92, "lon": -593.34, "fov": 25},
+        {"lat": -11.92, "lon": -655.29, "fov": 36.38},
+        {"lat": -13.47, "lon": -690.99, "fov": 45.13},      
+        {"lat": -28.57, "lon": -740.19, "fov": 70},
+        {"lat": -11.87, "lon": -836.84, "fov": 32.5}
+    ]
+  },
+  {
+    "title": "Eleven Mile Dam",
     "details": "Shot via Mavic 2 Pro",
     "owner": "Wouter Reyniers",
     "image": "panos/eleven-mile-dam.jpg",
     "audio": "audio/UKDistantWeir-highpass.mp3",
+    "textCoords": [
+        {"x": -7.18, "y": -1.82,"z": -5, "rotationY": 0.56, "bend":100,  "scale":0.008}
+    ],
     "motion": [
         {"lat": 3.15, "lon": 228.17, "fov": 53},
         {"lat": -17.83, "lon": 198.57, "fov": 45.32},
@@ -23,6 +46,9 @@
     "lonStart": -51, 
     "latStart": -13,
     "fovStart": 38,
+    "textCoords": [
+        {"x": -0.46, "y": -2.46,"z": -5, "rotationY": 0.17, "bend":1000, "scale":0.008}
+    ],
     "motion": [
         {"lat": -12, "lon": 250, "fov": 42},
         {"lat": -13.15, "lon": 228.17, "fov": 53},

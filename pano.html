@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Panoramas by Wouter Reyniers</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" href="/css/master.css">
+
+  </head>
+  <body>
+
+    <!-- Get font weight ready for canvas -->
+    <div style="font-weight: 700; position: fixed; opacity:0;">Hello</div>
+
+    <canvas id="glcanvas" width="3200" height="260">
+      Your browser does not support the canvas element.
+    </canvas>
+
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,800,900&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="js/lib/fetch.js"></script>
+    <script src="js/lib/stats.js"></script>
+    <script src="https://threejs.org/build/three.js"></script>
+    <script src="https://kit.fontawesome.com/c98c42096d.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.3/TweenMax.min.js"></script>
+    <script src="js/main.js"></script>  
+
+
+    <div class="loader">    
+      <div class="counter">
+          <span class="description">Downloading panorama image...</span>
+          <progress id="bar" value="0" max="100" ng-model="prog"></progress>
+          <span class="percentageCounter"></span>
+          <span class="byteCounter"></span>
+      </div>
+    </div>
+    
+    <div class="parameters">
+      <div>lat: <span class="latVal"></span></div>
+      <div>lon: <span class="lonVal"></span></div>
+      <div>fov: <span class="fovVal"></span></div>
+      <div>waypoint: <span class="waypoint"></span></div>
+      <div>latDiff: <span class="latDiff"></span></div>
+      <div>lonDiff: <span class="lonDiff"></span></div>
+      <div>fovDiff: <span class="fovDiff"></span></div>
+    </div>
+
+    <div class="edge left">
+      <button class="changePano prev" ><i class="fas fa-chevron-left"></i></button>
+    </div>
+
+    <div class="edge right">
+      <button class="changePano next"><i class="fas fa-chevron-right"></i></button>
+    </div>
+
+    <div class="playControl">
+      <button class="play"><i class="fas fa-play"></i></button>
+      <button class="pause"><i class="fas fa-pause"></i></button>
+      <!-- <button class="volume-up"><i class="fas fa-volume-up"></i></button>
+      <button class="volume-off"><i class="fas fa-volume-off"></i></button> -->
+    </div>
+    
+  </body>
+</html>
