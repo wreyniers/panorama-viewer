@@ -62,13 +62,16 @@ var latComplete = false;
 var lonComplete = false;
 var fovComplete = false;
 var lonDiff, latDiff, fovDiff, lonNext, latNext, fovNext;
-var titleShow = false;
 var sound;
-var rendererStats = new THREEx.RendererStats();
-rendererStats.domElement.style.position = 'absolute'
-rendererStats.domElement.style.left = '0px'
-rendererStats.domElement.style.bottom = '0px'
-    //document.body.appendChild(rendererStats.domElement)
+var statsEnabled = false;
+if (statsEnabled == true) {
+    var rendererStats = new THREEx.RendererStats();
+    rendererStats.domElement.style.position = 'absolute'
+    rendererStats.domElement.style.left = '0px'
+    rendererStats.domElement.style.bottom = '0px'
+    document.body.appendChild(rendererStats.domElement)
+}
+
 function bend(group, amount, multiMaterialObject) {
     function bendVertices(mesh, amount, parent) {
         var vertices = mesh.geometry.vertices;
@@ -119,7 +122,15 @@ function AjaxTextureLoader(themanager) {
     function load(imgPano, onLoad, onProgress, onError) {
         const cached = cache.get(imgPano);
         if (cached) {
-            return cached;
+
+            // Since we're not downloading image, set loader to 100%
+            $(".percentageCounter").text(Math.round(100) + "%");
+            $('#bar').val(100);
+            $(".description").text("Creating projection sphere...")
+
+            // Load cached image
+            loadImageAsTexture();
+            //return cached;
         } else {
             fileLoader.load(imgPano, cacheImage, onProgress, onError);
         }
@@ -231,7 +242,6 @@ function clearThree(obj) {
     if (obj.geometry) obj.geometry.dispose()
     if (obj.material) {
         //in case of map, bumpMap, normalMap, envMap ...
-        console.log(obj.material)
         Object.keys(obj.material).forEach(prop => {
             if (!obj.material[prop]) return
             if (typeof obj.material[prop].dispose === 'function') obj.material[prop].dispose()
@@ -241,21 +251,29 @@ function clearThree(obj) {
 }
 
 function clearPano() {
-    if (sound.isPlaying) {
-        sound.stop();
-        sound = "";
-        audioPlaying = false;
+    TweenLite.to(pano.material, 5, {
+        opacity: 0
+    });
+    if (sound != undefined) {
+        if (sound.isPlaying) {
+            sound.stop();
+            sound = "";
+            audioPlaying = false;
+        }
     }
     clearThree(scene);
-    scene.dispose();
+    //scene.dispose();
 }
 
 function loadPano() {
     $(".description").text("Downloading panorama image...")
     $('#bar').val(0);
     $(".loader").removeClass("hide");
-    var panoTexture;
-    //var panoTexture = new THREE.TextureLoader().load('images/background.jpg');
+
+
+
+
+    // var panoTexture = new THREE.TextureLoader().load('images/background.jpg');
     var material = new THREE.MeshBasicMaterial({
         //map: panoTexture,
         color: 0x000000,
@@ -268,9 +286,20 @@ function loadPano() {
     scene.add(pano);
     panosList.then(function(panos) {
         if (panoId == undefined) {
-            panoId = getUrlParameter('pano');
+            if (getUrlParameter('pano')) {
+                panoId = getUrlParameter('pano')
+            } else {
+                panoId = 0;
+            }
         }
-        console.log("panoId: " + panoId);
+        // Update url param 
+        if (history.pushState) {
+            var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?pano=' + panoId;
+            window.history.pushState({
+                path: newurl
+            }, '', newurl);
+        }
+        console.log("\n\n\n" + "Loading Panoram with ID: " + panoId);
         panoCurrent = panos[panoId];
         console.log(panoCurrent);
         var imgPano = panoCurrent.image;
@@ -280,7 +309,6 @@ function loadPano() {
         var audioFile = panoCurrent.audio;
         var material = new THREE.MeshBasicMaterial();
         var textureLoader = new AjaxTextureLoader(manager);
-        console.log(panoTexture);
         textureLoader.load(imgPano, function(panoTexture) {
             material.map = panoTexture;
             material.transparent = true;
@@ -292,8 +320,10 @@ function loadPano() {
             setTimeout(function() {
                 $(".loader").addClass("hide");
                 textOverlay(panoTitle, panoTextCoords, panoOwner);
-                startAudio(audioFile);
-                playPano();
+                if (audioFile) {
+                    startAudio(audioFile);
+                }
+                startPano();
             }, 2000);
         }, function(xhr) {
             $(".percentageCounter").text(Math.round(xhr.loaded / xhr.total * 100) + "%")
@@ -346,6 +376,7 @@ function textOverlay(panoTitle, panoTextCoords, panoOwner) {
     overlayTxt.rotation.y = panoTextCoords.rotationY;
     // overlayTxt.rotation.z = 0.02;
     bend(overlayTxt, panoTextCoords.bend);
+    scene.add(overlayTxt);
 };
 
 function requestFullscreen() {
@@ -469,7 +500,9 @@ function updateParameters() {
 
 function animate() {
     renderer.render(scene, camera);
-    rendererStats.update(renderer);
+    if (statsEnabled == true) {
+        rendererStats.update(renderer);
+    }
     requestAnimationFrame(animate);
     update();
 }
@@ -508,7 +541,9 @@ function update() {
                 sound.play();
             }
         } else {
-            //sound.pause();
+            if (sound.isPlaying === true) {
+                sound.pause();
+            }
         }
     }
     lat = Math.max(-85, Math.min(85, lat));
@@ -528,47 +563,46 @@ function update() {
 
 function togglePlay() {
     if (animatePano) {
-        pausePano();
+        animatePano = false;
+        sound.pause();
+        $('.playControl').removeClass("playing");
     } else {
-        playPano();
+        animatePano = true;
+        $('.playControl').addClass("playing");
     }
 };
 
-function playPano() {
+function startPano() {
     TweenLite.to(pano.material, 5, {
         opacity: 1
     });
     setTimeout(function() {
-        scene.add(overlayTxt);
-        toggleTitle()
+        showTitle()
         setTimeout(function() {
-            toggleTitle();
+            hideTitle();
         }, 5000)
-    }, 2000);
+    }, 4000);
     animatePano = true;
     $('.playControl').addClass("playing");
-    titleShow = false;
 }
 
-function pausePano() {
-    animatePano = false;
-    sound.pause();
-    $('.playControl').removeClass("playing")
-}
-
-function toggleTitle() {
-    if (titleShow) {
-        TweenLite.to(overlayTxt.children[0].material, 3, {
-            opacity: 0
-        });
-        titleShow = false;
-    } else {
+function showTitle() {
+    if (overlayTxt.children.length != 0) {
         TweenLite.to(overlayTxt.children[0].material, 3, {
             opacity: 1
         });
-        titleShow = true;
     }
 }
+
+function hideTitle() {
+    if (overlayTxt.children.length != 0) {
+        TweenLite.to(overlayTxt.children[0].material, 3, {
+            opacity: 0
+        });
+    }
+}
+
+
 
 function toggleAudio() {
     if (audioPlaying) {
