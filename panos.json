@@ -1,6 +1,7 @@
 [
   {
-    "title": "Athens",
+    "title": "Acropolis",
+    "location" : "Athens - Greece",
     "details": "Shot via Mavic 2 Pro",
     "owner": "Wouter Reyniers",
     "image": "panos/athens.jpg",
@@ -20,7 +21,29 @@
     ]
   },
   {
+    "title": "Limani Ydras",    
+    "location" : "Hydra - Greece",
+    "details": "Shot via Mavic 2 Pro",
+    "owner": "Wouter Reyniers",
+    "image": "panos/hydra.jpg",
+    "textCoords": [
+        {"x": 3.34, "y": 0.3,"z": -7.8, "rotationY": -0.51, "bend":1000, "scale":0.012}
+    ],
+    "motion": [
+        {"lat": -14.83, "lon": -403.6, "fov": 53.73},  
+        {"lat": -8.45, "lon": -474.67, "fov": 50.14},
+        {"lat": -10.11, "lon": -566.75, "fov": 29.99},
+        {"lat": -5.92, "lon": -593.34, "fov": 25},
+        {"lat": -11.92, "lon": -655.29, "fov": 36.38},
+        {"lat": -13.47, "lon": -690.99, "fov": 45.13},      
+        {"lat": -28.57, "lon": -740.19, "fov": 70},
+        {"lat": -11.87, "lon": -836.84, "fov": 32.5}
+    ]
+  },
+
+  {
     "title": "Eleven Mile Dam",
+    "location": "Lake George, Colorado",
     "details": "Shot via Mavic 2 Pro",
     "owner": "Wouter Reyniers",
     "image": "panos/eleven-mile-dam.jpg",
@@ -39,7 +62,8 @@
     ]
   },
   {
-    "title": "Vedauwoo - Curt Gowdy State Park",
+    "title": "Curt Gowdy State Park",
+    "location": "Cheyenne, WY",
     "details": "Shot via Mavic 2 Pro",
     "owner": "Wouter Reyniers",
     "image": "panos/vedauwoo.jpg",

@@ -270,9 +270,6 @@ function loadPano() {
     $('#bar').val(0);
     $(".loader").removeClass("hide");
 
-
-
-
     // var panoTexture = new THREE.TextureLoader().load('images/background.jpg');
     var material = new THREE.MeshBasicMaterial({
         //map: panoTexture,
@@ -299,12 +296,12 @@ function loadPano() {
                 path: newurl
             }, '', newurl);
         }
-        console.log("\n\n\n" + "Loading Panoram with ID: " + panoId);
+        // console.log("\n\n\n" + "Loading Panoram with ID: " + panoId);
         panoCurrent = panos[panoId];
-        console.log(panoCurrent);
+        // console.log(panoCurrent);
         var imgPano = panoCurrent.image;
         var panoTitle = panoCurrent.title;
-        var panoOwner = panoCurrent.owner;
+        var panoLocation = panoCurrent.location;
         var panoTextCoords = panoCurrent.textCoords[0]
         var audioFile = panoCurrent.audio;
         var material = new THREE.MeshBasicMaterial();
@@ -319,7 +316,7 @@ function loadPano() {
             positionCamera();
             setTimeout(function() {
                 $(".loader").addClass("hide");
-                textOverlay(panoTitle, panoTextCoords, panoOwner);
+                textOverlay(panoTitle, panoTextCoords, panoLocation);
                 if (audioFile) {
                     startAudio(audioFile);
                 }
@@ -347,7 +344,7 @@ function positionCamera() {
     getNextAnimatePosition();
 }
 
-function textOverlay(panoTitle, panoTextCoords, panoOwner) {
+function textOverlay(panoTitle, panoTextCoords, panoLocation) {
     var glcanvas = document.getElementById("glcanvas");
     var ctx = glcanvas.getContext("2d");
     ctx.clearRect(0, 0, 3200, 260);
@@ -356,7 +353,7 @@ function textOverlay(panoTitle, panoTextCoords, panoOwner) {
     ctx.textAlign = "center";
     ctx.fillText(panoTitle, 1600, 120);
     ctx.font = "400 60px Montserrat";
-    ctx.fillText("Photo by: " + panoOwner, 1600, 220);
+    ctx.fillText(panoLocation, 1600, 220);
     overlayTxt = new THREE.Object3D();
     overlayTxt.name = "Text Overlay";
     textTexture = new THREE.Texture(glcanvas);
@@ -488,6 +485,32 @@ function onDocumentMouseWheel(event) {
     camera.updateProjectionMatrix();
 }
 
+function zoomGoto(value) {
+    console.log("go to zoom")
+    var fov = value;
+    camera.fov = THREE.Math.clamp(fov, 20, 75);
+    console.log("fov: " + fov);
+    camera.updateProjectionMatrix();
+}
+
+function zoomIn() {
+    console.log("zoooming in")
+    var fov = camera.fov - 1;
+    camera.fov = THREE.Math.clamp(fov, 20, 75);
+    console.log("fov: " + fov);
+    camera.updateProjectionMatrix();
+}
+
+
+function zoomOut() {
+    console.log("zoooming out")
+    var fov = camera.fov + 1;
+    camera.fov = THREE.Math.clamp(fov, 20, 75);
+    console.log("fov: " + fov);
+    camera.updateProjectionMatrix();
+}
+
+
 function updateParameters() {
     $(".fovVal").text(Math.round(camera.fov * 100) / 100);
     $(".latVal").text(Math.round(lat * 100) / 100);
@@ -564,7 +587,7 @@ function update() {
 function togglePlay() {
     if (animatePano) {
         animatePano = false;
-        sound.pause();
+        //sound.pause();
         $('.playControl').removeClass("playing");
     } else {
         animatePano = true;
@@ -613,6 +636,14 @@ function toggleAudio() {
         $('.playControl').addClass("audioPlaying");
     }
 }
+
+function goHome() {
+    
+    // window.location.href = '/';
+    $('input[type="range"]').val(10).change();
+}
+
+
 document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('mozfullscreenchange', onFullscreenChange);
 window.addEventListener('keydown', onkey, true);
@@ -630,6 +661,17 @@ window.onload = function() {
     document.querySelector('button.pause').addEventListener('click', function() {
         togglePlay();
     });
+    document.querySelector('button.exit').addEventListener('click', function() {
+        goHome();
+    });
+
+    document.querySelector('button.zoomIn').addEventListener('click', function() {
+        zoomIn();
+    });
+    document.querySelector('button.zoomOut').addEventListener('click', function() {
+        zoomOut();
+    });
+
     // document.querySelector('button.volume-up').addEventListener('click', function() {
     //     toggleAudio();
     // });   
@@ -637,4 +679,40 @@ window.onload = function() {
     //     toggleAudio();
     // }); 
 };
+
+$('input[type="range"]').rangeslider({
+    // Feature detection the default is `true`.
+    // Set this to `false` if you want to use
+    // the polyfill also in Browsers which support
+    // the native <input type="range"> element.
+    polyfill: true,
+
+    // Default CSS classes
+    rangeClass: 'rangeslider',
+    disabledClass: 'rangeslider--disabled',
+    horizontalClass: 'rangeslider--horizontal',
+    verticalClass: 'rangeslider--vertical',
+    fillClass: 'rangeslider__fill',
+    handleClass: 'rangeslider__handle',
+
+    // Callback function
+    onInit: function() {
+        console.log("range initialized")
+    },
+
+    // Callback function
+    onSlide: function(position, value) {
+        console.log('hello')
+        zoomGoto(this.value);
+    },
+
+    // Callback function
+    onSlideEnd: function(position, value) {
+        console.log('hello')
+        zoomGoto(this.value);
+    }
+});
+
+
+
 init();
